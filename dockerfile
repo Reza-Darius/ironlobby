@@ -1,0 +1,18 @@
+FROM golang:1.26-alpine AS builder
+
+WORKDIR /build
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0  go build -v -o ironlobby ./cmd
+
+# Final stage
+FROM gcr.io/distroless/static-debian13
+
+WORKDIR /app
+
+COPY --from=builder /build/ironlobby .
+
+CMD ["./ironlobby"]

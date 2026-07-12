@@ -1,0 +1,41 @@
+services:
+  app:
+    # everything in .env will be made available as env variable to app
+    env_file: ".env"
+
+    # builds the docker file in the current directory
+    build: .
+    depends_on:
+      db:
+        # this prevents race condition where the app is ready before the db
+        condition: service_healthy
+
+    # docker compose reads .env automatically, so we can pass in PG variables
+    # the URL is then available as env variable for app
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    ports:
+      - "4000:${PORT}"
+
+  db:
+    image: postgres:18
+
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # POSTRGRES_DB is only relevant for initializing the db for the first time
+      POSTGRES_DB: ${POSTGRES_DB}
+
+    volumes:
+      # we mount the named volume to path
+      - pgdata:/var/lib/postgresql
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  # declares a named volume managed by docker
+  pgdata:

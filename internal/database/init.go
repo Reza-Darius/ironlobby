@@ -11,11 +11,7 @@ import (
 	"github.com/pressly/goose/v3"
 )
 
-type Database struct {
-	pool *pgxpool.Pool
-}
-
-func NewDB(DBURL string) (*Database, error) {
+func NewDB(DBURL string) (*Queries, error) {
 	slog.Info("initializing PG database", "URL", DBURL)
 
 	pool, err := pgxpool.New(context.Background(), DBURL)
@@ -44,7 +40,5 @@ func NewDB(DBURL string) (*Database, error) {
 		return nil, err
 	}
 
-	return &Database{
-		pool,
-	}, nil
+	return New(pool), nil
 }

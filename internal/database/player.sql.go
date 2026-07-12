@@ -10,7 +10,7 @@ import (
 )
 
 const getAllPlayer = `-- name: GetAllPlayer :many
-SELECT id, name FROM Player
+SELECT id, player_name FROM player
 `
 
 func (q *Queries) GetAllPlayer(ctx context.Context) ([]Player, error) {
@@ -22,7 +22,7 @@ func (q *Queries) GetAllPlayer(ctx context.Context) ([]Player, error) {
 	var items []Player
 	for rows.Next() {
 		var i Player
-		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+		if err := rows.Scan(&i.ID, &i.PlayerName); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -33,12 +33,15 @@ func (q *Queries) GetAllPlayer(ctx context.Context) ([]Player, error) {
 	return items, nil
 }
 
-const insertPlayer = `-- name: InsertPlayer :exec
-INSERT INTO Player(name) 
+const insertPlayer = `-- name: InsertPlayer :one
+INSERT INTO player(player_name) 
 VALUES ($1)
+RETURNING id, player_name
 `
 
-func (q *Queries) InsertPlayer(ctx context.Context, name string) error {
-	_, err := q.db.Exec(ctx, insertPlayer, name)
-	return err
+func (q *Queries) InsertPlayer(ctx context.Context, playerName string) (Player, error) {
+	row := q.db.QueryRow(ctx, insertPlayer, playerName)
+	var i Player
+	err := row.Scan(&i.ID, &i.PlayerName)
+	return i, err
 }

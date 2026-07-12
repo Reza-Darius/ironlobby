@@ -4,7 +4,87 @@
 
 package database
 
+import (
+	"database/sql/driver"
+	"fmt"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
+)
+
+type Gamemode string
+
+const (
+	GamemodeVanilla Gamemode = "vanilla"
+	GamemodeModded  Gamemode = "modded"
+	GamemodeRp      Gamemode = "rp"
+)
+
+func (e *Gamemode) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = Gamemode(s)
+	case string:
+		*e = Gamemode(s)
+	default:
+		return fmt.Errorf("unsupported scan type for Gamemode: %T", src)
+	}
+	return nil
+}
+
+type NullGamemode struct {
+	Gamemode Gamemode `json:"gamemode"`
+	Valid    bool     `json:"valid"` // Valid is true if Gamemode is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullGamemode) Scan(value interface{}) error {
+	if value == nil {
+		ns.Gamemode, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.Gamemode.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullGamemode) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.Gamemode), nil
+}
+
+type Country struct {
+	ID         int32  `json:"id"`
+	CountryTag string `json:"country_tag"`
+}
+
+type Lobby struct {
+	ID          uuid.UUID   `json:"id"`
+	HostPlayer  uuid.UUID   `json:"host_player"`
+	LobbyName   string      `json:"lobby_name"`
+	StartAt     time.Time   `json:"start_at"`
+	PlayerCount int32       `json:"player_count"`
+	Gamemode    Gamemode    `json:"gamemode"`
+	IngameID    pgtype.Text `json:"ingame_id"`
+}
+
+type LobbyCountry struct {
+	LobbyID   uuid.UUID `json:"lobby_id"`
+	CountryID int32     `json:"country_id"`
+	MaxSlots  int32     `json:"max_slots"`
+}
+
 type Player struct {
-	ID   int32  `json:"id"`
-	Name string `json:"name"`
+	ID         uuid.UUID `json:"id"`
+	PlayerName string    `json:"player_name"`
+}
+
+type PlayerLobby struct {
+	PlayerID  uuid.UUID `json:"player_id"`
+	LobbyID   uuid.UUID `json:"lobby_id"`
+	CountryID int32     `json:"country_id"`
+	JoinedAt  time.Time `json:"joined_at"`
 }

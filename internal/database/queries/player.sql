@@ -1,6 +1,8 @@
 -- name: GetAllPlayer :many
-SELECT * FROM Player;
+SELECT * FROM player;
 
--- name: InsertPlayer :exec
-INSERT INTO Player(name) 
-VALUES ($1);
+-- name: InsertPlayer :one
+INSERT INTO player(player_name) 
+VALUES ($1)
+RETURNING *;
+

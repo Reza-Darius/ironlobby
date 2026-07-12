@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -21,26 +19,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	q, err := database.NewDB(config.DBUrl)
+	_, err = database.NewDB(config.DBUrl)
 	if err != nil {
 		slog.Error("database init error")
 		os.Exit(1)
-	}
-
-	err = q.InsertPlayer(context.Background(), "weixiao")
-	if err != nil {
-		slog.Error("error when inserting test player", "err", err)
-		os.Exit(1)
-	}
-
-	r, err := q.GetAllPlayer(context.Background())
-	if err != nil {
-		slog.Error("error when retrieving test player", "err", err)
-		os.Exit(1)
-	}
-
-	for _, player := range r {
-		log.Printf("player id %v, name %v", player.ID, player.Name)
 	}
 
 	routes := server.NewRouter()

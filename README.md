@@ -1,6 +1,6 @@
-# Schnibbelbox
+# Iron Lobby
 
-A small little project to play around with docker and postgres
+A small application for Heart of Iron 4 to help people organize multiplayer lobbies!
 
 Run with `docker compose up`
 
@@ -11,9 +11,6 @@ Run with `docker compose up`
 PORT=3000
 
 MIGRATION_PATH=./migrations
-
-# for SQLite
-DB_PATH=./database.db
 
 POSTGRES_USER=schnib-user
 POSTGRES_PASSWORD=mypassword

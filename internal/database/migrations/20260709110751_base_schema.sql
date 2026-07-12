@@ -6,38 +6,6 @@ CREATE TABLE IF NOT EXISTS player (
     player_name TEXT NOT NULL UNIQUE
 );
 
-CREATE TYPE GAMEMODE AS ENUM ('vanilla', 'modded', 'rp');
-
-CREATE TABLE IF NOT EXISTS lobby (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    host_player UUID NOT NULL REFERENCES player (id) ON DELETE CASCADE,
-    lobby_name TEXT NOT NULL,
-    start_at TIMESTAMPTZ NOT NULL,
-    player_count INT NOT NULL,
-    gamemode GAMEMODE NOT NULL,
-    ingame_id TEXT,
-
-    CHECK (player_count BETWEEN 1 AND 32)
-);
-
-CREATE TABLE IF NOT EXISTS player_lobby (
-    player_id UUID REFERENCES player (id) ON DELETE CASCADE,
-    lobby_id UUID NOT NULL REFERENCES lobby (id) ON DELETE CASCADE,
-    country_id INTEGER NOT NULL REFERENCES countries (id),
-    joined_at TIMESTAMPTZ NOT NULL,
-
-    PRIMARY KEY (player_id)
-);
-
-CREATE TABLE IF NOT EXISTS lobby_countries (
-    lobby_id UUID REFERENCES lobby (id) ON DELETE CASCADE,
-    country_id INT REFERENCES countries (id) ON DELETE SET NULL,
-    max_slots INT NOT NULL DEFAULT 1,
-
-    CHECK (max_slots BETWEEN 1 AND 32),
-    PRIMARY KEY (lobby_id, country_id)
-);
-
 CREATE TABLE IF NOT EXISTS countries (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     country_tag CHAR(3) NOT NULL UNIQUE
@@ -88,6 +56,39 @@ INSERT INTO countries (country_tag) VALUES
     ('ETH'), -- Ethiopia
     ('THA'), -- Thailand
     ('PHI'); -- Philippines
+
+CREATE TYPE GAMEMODE AS ENUM ('vanilla', 'modded', 'rp');
+
+CREATE TABLE IF NOT EXISTS lobby (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    host_player UUID NOT NULL REFERENCES player (id) ON DELETE CASCADE,
+    lobby_name TEXT NOT NULL,
+    start_at TIMESTAMPTZ NOT NULL,
+    player_count INT NOT NULL,
+    gamemode GAMEMODE NOT NULL,
+    ingame_id TEXT,
+
+    CHECK (player_count BETWEEN 1 AND 32)
+);
+
+CREATE TABLE IF NOT EXISTS player_lobby (
+    player_id UUID REFERENCES player (id) ON DELETE CASCADE,
+    lobby_id UUID NOT NULL REFERENCES lobby (id) ON DELETE CASCADE,
+    country_id INTEGER NOT NULL REFERENCES countries (id),
+    joined_at TIMESTAMPTZ NOT NULL,
+
+    PRIMARY KEY (player_id)
+);
+
+CREATE TABLE IF NOT EXISTS lobby_countries (
+    lobby_id UUID REFERENCES lobby (id) ON DELETE CASCADE,
+    country_id INT REFERENCES countries (id) ON DELETE SET NULL,
+    max_slots INT NOT NULL DEFAULT 1,
+
+    CHECK (max_slots BETWEEN 1 AND 32),
+    PRIMARY KEY (lobby_id, country_id)
+);
+
 
 -- +goose Down
 SELECT 'down SQL query';

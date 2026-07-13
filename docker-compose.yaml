@@ -15,15 +15,16 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     ports:
-      - "4000:${PORT}"
+      - "${PORT}:${PORT}"
 
   db:
     image: postgres:18
 
     environment:
+      # initializes a cluster with a superuser named after POSTGRES_USER with POSTGRES_PASSWORD
+      # POSTGRES_DB is owned by that user, once the cluster is created, these values are ignored
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      # POSTRGRES_DB is only relevant for initializing the db for the first time
       POSTGRES_DB: ${POSTGRES_DB}
 
     volumes:

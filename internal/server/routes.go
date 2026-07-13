@@ -1,22 +1,13 @@
 package server
 
 import (
-	"log"
-	"net/http"
-
 	"github.com/go-chi/chi/v5"
 )
 
-func NewRouter() *chi.Mux {
+func (app *Application) routes() *chi.Mux {
 	r := chi.NewRouter()
-	r.Get("/", helloWorld)
+	r.Get("/health", app.healthcheck)
+	r.Post("/user", app.newUser)
 
 	return r
-}
-
-func helloWorld(w http.ResponseWriter, r *http.Request) {
-	_, err := w.Write([]byte("hello world"))
-	if err != nil {
-		log.Println(err)
-	}
 }

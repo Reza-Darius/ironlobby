@@ -44,7 +44,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatalf("failed to connect to db: %v", err)
 	}
-	testDB = db
+	testDB = New(db.pool)
 
 	code := m.Run()
 

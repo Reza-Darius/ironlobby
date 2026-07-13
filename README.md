@@ -24,6 +24,49 @@ preference for a certain nation
 
 ## Implementation
 
+## API routes
+
+```
+
+UNAUTHORIZED ROUTES:
+
+GET /{lobby_id} -> ruft Lobby auf
+
+POST /user -> register new user
+json "username":"{user_input}"
+
+AUTHORIZED ROUTES:
+
+POST /lobby -> neue lobby erstellen
+body:
+type InsertLobbyParams struct {
+        LobbyName  string    `json:"lobby_name"`
+        StartsAt   time.Time `json:"starts_at"`
+        Gamemode   Gamemode  `json:"gamemode"`
+}
+
+Host actions:
+
+PUT /{lobby_id} -> lobby bearbeiten
+body:
+type InsertLobbyParams struct {
+        LobbyName  string    `json:"lobby_name"`
+        StartsAt   time.Time `json:"starts_at"`
+        Gamemode   Gamemode  `json:"gamemode"`
+}
+
+DELETE /{lobby_id} -> lobby löschen
+
+Player actions:
+
+POST /{lobby_id} -> lobby joinen
+body:
+type AssignPlayerToLobbyParams struct {
+        CountryTag string    `json:"country_tag"`
+}
+
+PUT /edit/{lobby_id} -> nation wechseln/lobby leaven?
+```
 ### Running the App
 
 Run with `docker compose up`

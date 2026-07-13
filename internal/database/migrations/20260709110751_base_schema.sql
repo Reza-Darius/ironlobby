@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS player_lobby (
     country_id INTEGER NOT NULL REFERENCES countries (id),
     joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-    PRIMARY KEY (player_id)
+    PRIMARY KEY (lobby_id, player_id)
 );
 
 CREATE TABLE IF NOT EXISTS lobby_countries (

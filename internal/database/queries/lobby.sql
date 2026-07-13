@@ -48,3 +48,6 @@ VALUES (
     (SELECT id FROM countries WHERE country_tag = $2),
     $3
 );
+
+-- name: OpenLobbies :one
+SELECT COUNT(*) FROM lobby WHERE starts_at <= NOW();

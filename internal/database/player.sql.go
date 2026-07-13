@@ -101,10 +101,15 @@ func (q *Queries) InsertNewPlayer(ctx context.Context, playerName string) (Playe
 }
 
 const unassignPlayer = `-- name: UnassignPlayer :exec
-DELETE FROM player_lobby WHERE player_id = $1
+DELETE FROM player_lobby WHERE lobby_id = $1 and player_id = $2
 `
 
-func (q *Queries) UnassignPlayer(ctx context.Context, playerID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, unassignPlayer, playerID)
+type UnassignPlayerParams struct {
+	LobbyID  int64     `json:"lobby_id"`
+	PlayerID uuid.UUID `json:"player_id"`
+}
+
+func (q *Queries) UnassignPlayer(ctx context.Context, arg UnassignPlayerParams) error {
+	_, err := q.db.Exec(ctx, unassignPlayer, arg.LobbyID, arg.PlayerID)
 	return err
 }

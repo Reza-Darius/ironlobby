@@ -20,7 +20,7 @@ UPDATE lobby_countries SET occupied_slots = occupied_slots + 1 WHERE lobby_id = 
 );
 
 -- name: UnassignPlayer :exec
-DELETE FROM player_lobby WHERE player_id = $1;
+DELETE FROM player_lobby WHERE lobby_id = $1 and player_id = $2;
 
 -- name: DecrementCountry :exec
 UPDATE lobby_countries SET occupied_slots = occupied_slots -1 WHERE lobby_id = $1 AND country_id = (

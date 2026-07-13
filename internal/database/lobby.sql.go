@@ -183,6 +183,17 @@ func (q *Queries) InsertLobby(ctx context.Context, arg InsertLobbyParams) (Lobby
 	return i, err
 }
 
+const openLobbies = `-- name: OpenLobbies :one
+SELECT COUNT(*) FROM lobby WHERE starts_at <= NOW()
+`
+
+func (q *Queries) OpenLobbies(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, openLobbies)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const updateGameId = `-- name: UpdateGameId :exec
 UPDATE lobby SET ingame_id = $1 WHERE id = $2
 `

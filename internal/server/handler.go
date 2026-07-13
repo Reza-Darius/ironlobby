@@ -81,7 +81,7 @@ func (app *Application) getLobby(w http.ResponseWriter, r *http.Request) {
 	err = encode(w, r, http.StatusOK, lobby)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		slog.Error("error when encoding json boddy in get lobby", "err", err)
+		slog.Error("error when encoding json body in get lobby", "err", err)
 		return
 	}
 }
@@ -108,4 +108,38 @@ func (app *Application) newLobby(w http.ResponseWriter, r *http.Request) {
 	}
 
 	WriteUserCookie(w, id)
+}
+
+type JoinLobbyRequest struct {
+	Country string `json:"country_tag"`
+}
+
+func (app *Application) joinLobby(w http.ResponseWriter, r *http.Request) {
+	lobbyID := chi.URLParam(r, "lobby_id")
+	if lobbyID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		slog.Error("invalid lobby ID provided")
+		return
+	}
+
+	lobbyIDint, err := strconv.ParseInt(lobbyID, 10, 64)
+	if err != nil {
+		slog.Error("lobby int parse error", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return 
+	}
+
+	country, err := decode[JoinLobbyRequest](r)
+	if err != nil {
+		slog.Error("join lobby request body decode error", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return 
+	}
+
+	playerID := GetPlayerID(r)
+
+	err = app.db.JoinLobby(r.Context(), lobbyIDint, playerID, country.Country)
+	if err != nil {
+		// TODO: error code in case country is occupied
+	}
 }

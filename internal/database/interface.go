@@ -10,11 +10,44 @@ func (db Database) OpenLobbies(ctx context.Context) (int64, error) {
 	q := New(db.pool)
 	return q.OpenLobbies(ctx)
 }
+func (db Database) GetUser(ctx context.Context, id uuid.UUID) (string, error) {
+	q := New(db.pool)
+	return q.GetPlayer(ctx, id)
+}
 
 func (db Database) NewUser(ctx context.Context, playerName string) (uuid.UUID, error) {
 	q := New(db.pool)
 	player, err := q.InsertNewPlayer(ctx, playerName)
 	return player.ID, err
+}
+
+func (db Database) JoinLobby(ctx context.Context, lobbyID int64, playerID uuid.UUID, countryTag string) error {
+	tx, err := db.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	q := New(db.pool)
+	qtx := q.WithTx(tx)
+
+	err = qtx.AssignPlayerToLobby(ctx, AssignPlayerToLobbyParams{
+		PlayerID: playerID,
+		LobbyID: lobbyID,
+		CountryTag: countryTag,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = qtx.IncrementCountry(ctx, IncrementCountryParams{
+		LobbyID: lobbyID,
+		CountryTag: countryTag,
+	})
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
 
 type LobbyInfo struct {

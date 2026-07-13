@@ -71,6 +71,17 @@ func (q *Queries) GetAllPlayer(ctx context.Context) ([]Player, error) {
 	return items, nil
 }
 
+const getPlayer = `-- name: GetPlayer :one
+SELECT player_name FROM player WHERE id = $1
+`
+
+func (q *Queries) GetPlayer(ctx context.Context, id uuid.UUID) (string, error) {
+	row := q.db.QueryRow(ctx, getPlayer, id)
+	var player_name string
+	err := row.Scan(&player_name)
+	return player_name, err
+}
+
 const incrementCountry = `-- name: IncrementCountry :exec
 UPDATE lobby_countries SET occupied_slots = occupied_slots + 1 WHERE lobby_id = $1 AND country_id = (
   SELECT id FROM countries WHERE country_tag = $2

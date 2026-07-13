@@ -13,18 +13,85 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const getLobby = `-- name: GetLobby :one
-SELECT id, host_player, lobby_name, start_at, player_count, gamemode, ingame_id FROM lobby WHERE id = $1
+const addLobbyCountry = `-- name: AddLobbyCountry :exec
+INSERT INTO lobby_countries (lobby_id, country_id, max_slots)
+VALUES (
+    $1,
+    (SELECT id FROM countries WHERE country_tag = $2),
+    $3
+)
 `
 
-func (q *Queries) GetLobby(ctx context.Context, id uuid.UUID) (Lobby, error) {
-	row := q.db.QueryRow(ctx, getLobby, id)
+type AddLobbyCountryParams struct {
+	LobbyID    int64  `json:"lobby_id"`
+	CountryTag string `json:"country_tag"`
+	MaxSlots   int32  `json:"max_slots"`
+}
+
+func (q *Queries) AddLobbyCountry(ctx context.Context, arg AddLobbyCountryParams) error {
+	_, err := q.db.Exec(ctx, addLobbyCountry, arg.LobbyID, arg.CountryTag, arg.MaxSlots)
+	return err
+}
+
+const decrementPlayerCount = `-- name: DecrementPlayerCount :exec
+UPDATE lobby SET player_count = player_count - 1 WHERE id = $1
+`
+
+func (q *Queries) DecrementPlayerCount(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, decrementPlayerCount, id)
+	return err
+}
+
+const getLobbyCountries = `-- name: GetLobbyCountries :many
+SELECT
+    countries.country_tag,
+    lobby_countries.occupied_slots,
+    lobby_countries.max_slots
+FROM lobby_countries
+JOIN countries ON lobby_countries.country_id = countries.id
+WHERE lobby_countries.lobby_id = $1
+`
+
+type GetLobbyCountriesRow struct {
+	CountryTag    string `json:"country_tag"`
+	OccupiedSlots int32  `json:"occupied_slots"`
+	MaxSlots      int32  `json:"max_slots"`
+}
+
+func (q *Queries) GetLobbyCountries(ctx context.Context, lobbyID int64) ([]GetLobbyCountriesRow, error) {
+	rows, err := q.db.Query(ctx, getLobbyCountries, lobbyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLobbyCountriesRow
+	for rows.Next() {
+		var i GetLobbyCountriesRow
+		if err := rows.Scan(&i.CountryTag, &i.OccupiedSlots, &i.MaxSlots); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLobbyInfo = `-- name: GetLobbyInfo :one
+SELECT
+  id, host_player, lobby_name, starts_at, player_count, gamemode, ingame_id
+FROM lobby WHERE id = $1
+`
+
+func (q *Queries) GetLobbyInfo(ctx context.Context, id int64) (Lobby, error) {
+	row := q.db.QueryRow(ctx, getLobbyInfo, id)
 	var i Lobby
 	err := row.Scan(
 		&i.ID,
 		&i.HostPlayer,
 		&i.LobbyName,
-		&i.StartAt,
+		&i.StartsAt,
 		&i.PlayerCount,
 		&i.Gamemode,
 		&i.IngameID,
@@ -32,26 +99,75 @@ func (q *Queries) GetLobby(ctx context.Context, id uuid.UUID) (Lobby, error) {
 	return i, err
 }
 
+const getLobbyPlayers = `-- name: GetLobbyPlayers :many
+SELECT
+    player.player_name,
+    player_lobby.lobby_id,
+    countries.country_tag
+FROM player_lobby
+JOIN countries ON player_lobby.country_id = countries.id
+JOIN player ON player_lobby.player_id = player.id
+WHERE player_lobby.lobby_id = $1
+`
+
+type GetLobbyPlayersRow struct {
+	PlayerName string `json:"player_name"`
+	LobbyID    int64  `json:"lobby_id"`
+	CountryTag string `json:"country_tag"`
+}
+
+func (q *Queries) GetLobbyPlayers(ctx context.Context, lobbyID int64) ([]GetLobbyPlayersRow, error) {
+	rows, err := q.db.Query(ctx, getLobbyPlayers, lobbyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLobbyPlayersRow
+	for rows.Next() {
+		var i GetLobbyPlayersRow
+		if err := rows.Scan(&i.PlayerName, &i.LobbyID, &i.CountryTag); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const incrementPlayerCount = `-- name: IncrementPlayerCount :exec
+UPDATE lobby SET player_count = player_count + 1 WHERE id = $1
+`
+
+func (q *Queries) IncrementPlayerCount(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, incrementPlayerCount, id)
+	return err
+}
+
 const insertLobby = `-- name: InsertLobby :one
-INSERT INTO lobby(host_player, lobby_name, start_at, player_count, gamemode) 
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, host_player, lobby_name, start_at, player_count, gamemode, ingame_id
+INSERT INTO lobby(
+    host_player,
+    lobby_name,
+    starts_at,
+    gamemode
+) 
+VALUES ($1, $2, $3, $4)
+RETURNING id, host_player, lobby_name, starts_at, player_count, gamemode, ingame_id
 `
 
 type InsertLobbyParams struct {
-	HostPlayer  uuid.UUID `json:"host_player"`
-	LobbyName   string    `json:"lobby_name"`
-	StartAt     time.Time `json:"start_at"`
-	PlayerCount int32     `json:"player_count"`
-	Gamemode    Gamemode  `json:"gamemode"`
+	HostPlayer uuid.UUID `json:"host_player"`
+	LobbyName  string    `json:"lobby_name"`
+	StartsAt   time.Time `json:"starts_at"`
+	Gamemode   Gamemode  `json:"gamemode"`
 }
 
 func (q *Queries) InsertLobby(ctx context.Context, arg InsertLobbyParams) (Lobby, error) {
 	row := q.db.QueryRow(ctx, insertLobby,
 		arg.HostPlayer,
 		arg.LobbyName,
-		arg.StartAt,
-		arg.PlayerCount,
+		arg.StartsAt,
 		arg.Gamemode,
 	)
 	var i Lobby
@@ -59,7 +175,7 @@ func (q *Queries) InsertLobby(ctx context.Context, arg InsertLobbyParams) (Lobby
 		&i.ID,
 		&i.HostPlayer,
 		&i.LobbyName,
-		&i.StartAt,
+		&i.StartsAt,
 		&i.PlayerCount,
 		&i.Gamemode,
 		&i.IngameID,
@@ -73,7 +189,7 @@ UPDATE lobby SET ingame_id = $1 WHERE id = $2
 
 type UpdateGameIdParams struct {
 	IngameID pgtype.Text `json:"ingame_id"`
-	ID       uuid.UUID   `json:"id"`
+	ID       int64       `json:"id"`
 }
 
 func (q *Queries) UpdateGameId(ctx context.Context, arg UpdateGameIdParams) error {

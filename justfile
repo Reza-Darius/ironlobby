@@ -11,4 +11,5 @@ dblogin:
   docker compose exec db psql -U {{env('POSTGRES_USER')}} -d {{env('POSTGRES_DB')}}
 
 testdb:
+  sqlc generate
   go test ./internal/database

@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS player (
 );
 
 CREATE TABLE IF NOT EXISTS countries (
-    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id SMALLINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     country_tag CHAR(3) NOT NULL UNIQUE
 );
 
@@ -60,11 +60,11 @@ INSERT INTO countries (country_tag) VALUES
 CREATE TYPE GAMEMODE AS ENUM ('vanilla', 'modded', 'rp');
 
 CREATE TABLE IF NOT EXISTS lobby (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     host_player UUID NOT NULL REFERENCES player (id) ON DELETE CASCADE,
     lobby_name TEXT NOT NULL,
-    start_at TIMESTAMPTZ NOT NULL,
-    player_count INT NOT NULL,
+    starts_at TIMESTAMPTZ NOT NULL,
+    player_count INT NOT NULL DEFAULT 1,
     gamemode GAMEMODE NOT NULL,
     ingame_id TEXT,
 
@@ -73,19 +73,21 @@ CREATE TABLE IF NOT EXISTS lobby (
 
 CREATE TABLE IF NOT EXISTS player_lobby (
     player_id UUID REFERENCES player (id) ON DELETE CASCADE,
-    lobby_id UUID NOT NULL REFERENCES lobby (id) ON DELETE CASCADE,
+    lobby_id BIGINT NOT NULL REFERENCES lobby (id) ON DELETE CASCADE,
     country_id INTEGER NOT NULL REFERENCES countries (id),
-    joined_at TIMESTAMPTZ NOT NULL,
+    joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     PRIMARY KEY (player_id)
 );
 
 CREATE TABLE IF NOT EXISTS lobby_countries (
-    lobby_id UUID REFERENCES lobby (id) ON DELETE CASCADE,
+    lobby_id BIGINT REFERENCES lobby (id) ON DELETE CASCADE,
     country_id INT REFERENCES countries (id) ON DELETE SET NULL,
+    occupied_slots INT NOT NULL DEFAULT 0,
     max_slots INT NOT NULL DEFAULT 1,
 
-    CHECK (max_slots BETWEEN 1 AND 32),
+    CHECK (max_slots <= 32),
+    CHECK (occupied_slots <= max_slots),
     PRIMARY KEY (lobby_id, country_id)
 );
 

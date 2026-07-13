@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgerrcode"
@@ -63,14 +64,26 @@ func (app *Application) getLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := app.db.GetLobby(r.Context(), lobbyID)
+	IDInt, err := strconv.ParseInt(lobbyID, 10, 64)
+	if err != nil {
+		slog.Error("lobby int parse error", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return 
+	}
+
+	lobby, err := app.db.GetLobby(r.Context(), IDInt)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		slog.Error("error when fetching lobby from db", "err", err)
 		return
 	}
 
-	WriteUserCookie(w, id)
+	err = encode(w, r, http.StatusOK, lobby)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		slog.Error("error when encoding json boddy in get lobby", "err", err)
+		return
+	}
 }
 
 func (app *Application) newLobby(w http.ResponseWriter, r *http.Request) {

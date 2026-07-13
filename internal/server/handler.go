@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -31,6 +32,48 @@ type NewUserRequest struct {
 }
 
 func (app *Application) newUser(w http.ResponseWriter, r *http.Request) {
+	username, err := decode[NewUserRequest](r)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		slog.Error("error when decoding request body for new user", "err", err)
+		return
+	}
+
+	id, err := app.db.NewUser(r.Context(), username.Username)
+	if err != nil {
+		pgErr,_ := errors.AsType[*pgconn.PgError](err)
+    if pgErr.Code == pgerrcode.UniqueViolation {
+			// handle duplicate
+			w.WriteHeader(http.StatusBadRequest)
+			return
+    }
+		w.WriteHeader(http.StatusInternalServerError)
+		slog.Error("error when inserting new user into db", "err", err)
+		return
+	}
+
+	WriteUserCookie(w, id)
+}
+
+func (app *Application) getLobby(w http.ResponseWriter, r *http.Request) {
+	lobbyID := chi.URLParam(r, "lobby_id")
+	if lobbyID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		slog.Error("invalid lobby ID provided")
+		return
+	}
+
+	id, err := app.db.GetLobby(r.Context(), lobbyID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		slog.Error("error when fetching lobby from db", "err", err)
+		return
+	}
+
+	WriteUserCookie(w, id)
+}
+
+func (app *Application) newLobby(w http.ResponseWriter, r *http.Request) {
 	username, err := decode[NewUserRequest](r)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

@@ -1,10 +1,9 @@
 services:
-  app:
+  api:
     # everything in .env will be made available as env variable to app
     env_file: ".env"
 
-    # builds the docker file in the current directory
-    build: .
+    build: ./api
     depends_on:
       db:
         # this prevents race condition where the app is ready before the db

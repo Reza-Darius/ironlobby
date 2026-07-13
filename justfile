@@ -1,10 +1,7 @@
 set dotenv-load := true
 
 run:
-    go run ./cmd/*
-
-migrate:
-    goose up
+    go run ./api/cmd/*
 
 dblogin:
   # we could alternatively expose a port on the pg container to connect to
@@ -12,4 +9,4 @@ dblogin:
 
 testdb:
   sqlc generate
-  go test ./internal/database
+  go test ./api/internal/database

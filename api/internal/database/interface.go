@@ -10,6 +10,7 @@ func (db Database) OpenLobbies(ctx context.Context) (int64, error) {
 	q := New(db.pool)
 	return q.OpenLobbies(ctx)
 }
+
 func (db Database) GetUser(ctx context.Context, id uuid.UUID) (string, error) {
 	q := New(db.pool)
 	return q.GetPlayer(ctx, id)
@@ -19,6 +20,11 @@ func (db Database) NewUser(ctx context.Context, playerName string) (uuid.UUID, e
 	q := New(db.pool)
 	player, err := q.InsertNewPlayer(ctx, playerName)
 	return player.ID, err
+}
+
+func (db Database) CreateLobby(ctx context.Context, arg InsertLobbyParams) (Lobby, error) {
+	q := New(db.pool)
+	return q.InsertLobby(ctx, arg)
 }
 
 func (db Database) JoinLobby(ctx context.Context, lobbyID int64, playerID uuid.UUID, countryTag string) error {
@@ -31,8 +37,8 @@ func (db Database) JoinLobby(ctx context.Context, lobbyID int64, playerID uuid.U
 	qtx := q.WithTx(tx)
 
 	err = qtx.AssignPlayerToLobby(ctx, AssignPlayerToLobbyParams{
-		PlayerID: playerID,
-		LobbyID: lobbyID,
+		PlayerID:   playerID,
+		LobbyID:    lobbyID,
 		CountryTag: countryTag,
 	})
 	if err != nil {
@@ -40,7 +46,7 @@ func (db Database) JoinLobby(ctx context.Context, lobbyID int64, playerID uuid.U
 	}
 
 	err = qtx.IncrementCountry(ctx, IncrementCountryParams{
-		LobbyID: lobbyID,
+		LobbyID:    lobbyID,
 		CountryTag: countryTag,
 	})
 	if err != nil {
@@ -51,9 +57,9 @@ func (db Database) JoinLobby(ctx context.Context, lobbyID int64, playerID uuid.U
 }
 
 type LobbyInfo struct {
-	Lobby Lobby `json:"lobby"`
+	Lobby     Lobby                  `json:"lobby"`
 	Countries []GetLobbyCountriesRow `json:"countries"`
-	Players []GetLobbyPlayersRow `json:"players"`
+	Players   []GetLobbyPlayersRow   `json:"players"`
 }
 
 func (db Database) GetLobby(ctx context.Context, lobbyID int64) (LobbyInfo, error) {
@@ -71,8 +77,8 @@ func (db Database) GetLobby(ctx context.Context, lobbyID int64) (LobbyInfo, erro
 		return LobbyInfo{}, err
 	}
 	return LobbyInfo{
-		Lobby: lobby,
+		Lobby:     lobby,
 		Countries: lobbyCountries,
-		Players: lobbyPlayer,
+		Players:   lobbyPlayer,
 	}, nil
 }

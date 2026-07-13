@@ -44,7 +44,7 @@ func (app *Application) AuthSession(next http.Handler) http.Handler {
 			}
 
 			// create new context with attached key value pair, inherit parent context (request)
-			ctx := context.WithValue(r.Context(), "userID", intUUID)
+			ctx := context.WithValue(r.Context(), CookieName, intUUID)
 
 			// attach context to next handler
 			next.ServeHTTP(w, r.WithContext(ctx))

@@ -1,8 +1,8 @@
 version: "2"
 sql:
   - engine: "postgresql"
-    queries: "internal/database/queries"
-    schema: "internal/database/migrations"
+    queries: "api/internal/database/queries"
+    schema: "api/internal/database/migrations"
     gen:
       go:
         # attaches json tags to structs

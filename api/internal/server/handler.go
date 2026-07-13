@@ -6,10 +6,12 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/reza-darius/ironlobby/internal/database"
 )
 
 func (app *Application) healthcheck(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +54,7 @@ func (app *Application) newUser(w http.ResponseWriter, r *http.Request) {
 		slog.Error("error when inserting new user into db", "err", err)
 		return
 	}
-
+	slog.Info("new user registered!", "username", username, "id", id)
 	WriteUserCookie(w, id)
 }
 
@@ -73,12 +75,13 @@ func (app *Application) getLobby(w http.ResponseWriter, r *http.Request) {
 
 	lobby, err := app.db.GetLobby(r.Context(), IDInt)
 	if err != nil {
+		// TODO: 404 not found for non existant lobby
 		w.WriteHeader(http.StatusInternalServerError)
 		slog.Error("error when fetching lobby from db", "err", err)
 		return
 	}
 
-	err = encode(w, r, http.StatusOK, lobby)
+	err = encode(w, http.StatusOK, lobby)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		slog.Error("error when encoding json body in get lobby", "err", err)
@@ -86,28 +89,35 @@ func (app *Application) getLobby(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type CreateLobbyRequest struct {
+	LobbyName  string    `json:"lobby_name"`
+	StartsAt   time.Time `json:"starts_at"`
+	Gamemode   database.Gamemode  `json:"gamemode"`
+}
+
 func (app *Application) newLobby(w http.ResponseWriter, r *http.Request) {
-	username, err := decode[NewUserRequest](r)
+	hostID := GetPlayerID(r)
+
+	reqBody, err := decode[CreateLobbyRequest](r)
 	if err != nil {
+		slog.Error("create lobby request body decode error", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		slog.Error("error when decoding request body for new user", "err", err)
-		return
+		return 
 	}
 
-	id, err := app.db.NewUser(r.Context(), username.Username)
+	lobby, err := app.db.CreateLobby(r.Context(), database.InsertLobbyParams{
+		HostPlayer: hostID,
+		LobbyName: reqBody.LobbyName,
+		StartsAt: reqBody.StartsAt,
+		Gamemode: reqBody.Gamemode,
+	})
 	if err != nil {
-		pgErr,_ := errors.AsType[*pgconn.PgError](err)
-    if pgErr.Code == pgerrcode.UniqueViolation {
-			// handle duplicate
-			w.WriteHeader(http.StatusBadRequest)
-			return
-    }
+		slog.Error("create lobby db insert error", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		slog.Error("error when inserting new user into db", "err", err)
-		return
+		return 
 	}
 
-	WriteUserCookie(w, id)
+	slog.Info("new lobby registered!", "lobby", lobby)
 }
 
 type JoinLobbyRequest struct {

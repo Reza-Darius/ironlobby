@@ -13,10 +13,8 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
-var testDB *Queries
-
-func TestMain(m *testing.M) {
-	utils.InitLogging()
+// NewTestDBContainer caller should make sure to close the container when done
+func NewTestDBContainer() (*Database, *postgres.PostgresContainer) {
 	ctx := context.Background()
 
 	pg, err := postgres.Run(
@@ -27,13 +25,10 @@ func TestMain(m *testing.M) {
 		postgres.WithPassword("test"),
 		postgres.BasicWaitStrategies(),
 	)
+
 	if err != nil {
 		log.Fatalf("failed to start postgres container: %v", err)
 	}
-	// no ctx here on purpose - don't want teardown tied to a
-	// context that might get cancelled early
-	defer func() {
-	}()
 
 	connStr, err := pg.ConnectionString(ctx, "sslmode=disable")
 	if err != nil {
@@ -44,6 +39,17 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatalf("failed to connect to db: %v", err)
 	}
+	return db, pg
+}
+
+var testDB *Queries
+
+func TestMain(m *testing.M) {
+	utils.InitLogging()
+	ctx := context.Background()
+
+	db, pg := NewTestDBContainer()
+
 	testDB = New(db.pool)
 
 	code := m.Run()

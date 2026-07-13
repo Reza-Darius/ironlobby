@@ -21,7 +21,6 @@ func (app *Application) healthcheck(w http.ResponseWriter, r *http.Request) {
 		slog.Error("health check error when fetching open lobbies from db", "err", err)
 		return
 	}
-
 	_, err = fmt.Fprintf(w, "open lobbies: %v", openLobbies)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

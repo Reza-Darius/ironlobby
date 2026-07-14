@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -113,6 +114,7 @@ func TestCreateLobby(t *testing.T) {
 	srv := utils.NewTestServer(t, testApp.routes())
 	defer srv.Close()
 
+	// try to post lobby without a registered user
 	res, err := srv.Client().Post(srv.URL+"/api/lobby", "application/json", bytes.NewBuffer([]byte("")))
 	if err != nil {
 		t.Fatalf("failed to get a response, err: %v", err)
@@ -130,6 +132,7 @@ func TestCreateLobby(t *testing.T) {
 		t.Fatalf("failed to marshal username")
 	}
 
+	// register new user
 	res, err = srv.Client().Post(srv.URL+"/api/user", "application/json", bytes.NewBuffer(out))
 	if err != nil {
 		t.Fatalf("failed to get a response, err: %v", err)
@@ -137,10 +140,13 @@ func TestCreateLobby(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to create a user")
 
-	lobbyCreateBody := database.InsertLobbyParams {
-		LobbyName: "Historical PVP",
-		StartsAt: time.Now().AddDate(0, 0, 7),
-		Gamemode: database.GamemodeVanilla,
+	// Golang stores time in nanoseconds, and postgres in microseconds
+	// this truncation is only necessary for testing
+	startDate := time.Now().AddDate(0, 0, 7).Truncate(time.Microsecond)
+	lobbyCreateBody := database.InsertLobbyParams{
+		LobbyName:   "Historical PVP",
+		StartsAt:    startDate,
+		Gamemode:    database.GamemodeVanilla,
 		Description: "schizo lobby",
 	}
 
@@ -149,10 +155,48 @@ func TestCreateLobby(t *testing.T) {
 		t.Fatalf("failed to marshal username")
 	}
 
+	// create new lobby
 	res, err = srv.Client().Post(srv.URL+"/api/lobby", "application/json", bytes.NewBuffer(out))
+	defer res.Body.Close()
 	if err != nil {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
 
 	assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to create a lobby")
+
+	var lobbyID int64
+	resBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("failed to read resp body")
+	}
+
+	err = json.Unmarshal(resBody, &lobbyID)
+	if err != nil {
+		t.Fatalf("failed to unmarshal id")
+	}
+
+	// fetch newly created lobby
+	res, err = srv.Client().Get(srv.URL + "/api/" + strconv.FormatInt(lobbyID, 10))
+	if err != nil {
+		t.Fatalf("failed to get a response, err: %v", err)
+	}
+
+	assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to query the lobby after creating it")
+
+	var lobby database.LobbyInfo
+
+	resBody, err = io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("failed to read resp body")
+	}
+
+	err = json.Unmarshal(resBody, &lobby)
+	if err != nil {
+		t.Fatalf("failed to unmarshal id")
+	}
+
+	assert.Equal(t, lobby.Lobby.Description, lobbyCreateBody.Description, "description should match")
+	assert.Equal(t, lobby.Lobby.Gamemode, lobbyCreateBody.Gamemode, "gamemode should match")
+	assert.Equal(t, lobby.Lobby.LobbyName, lobbyCreateBody.LobbyName, "lobby name should match")
+	assert.Equal(t, lobby.Lobby.StartsAt, startDate, "start date should match")
 }

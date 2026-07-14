@@ -9,8 +9,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgerrcode"
-	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5"
 	"github.com/reza-darius/ironlobby/internal/database"
 )
 
@@ -42,15 +41,21 @@ func (app *Application) newUser(w http.ResponseWriter, r *http.Request) {
 
 	id, err := app.db.NewUser(r.Context(), username.Username)
 	if err != nil {
-		pgErr, _ := errors.AsType[*pgconn.PgError](err)
-		if pgErr.Code == pgerrcode.UniqueViolation {
-			// handle duplicate
-			slog.Debug("new user request with duplicate name", "name", username)
-			w.WriteHeader(http.StatusBadRequest)
-			return
+		switch err {
+
+		case database.ErrUserExists:
+			{
+
+				http.Error(w, "user already exists", http.StatusConflict)
+			}
+
+		default:
+			{
+
+				slog.Error("error when inserting new user into db", "err", err)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+			}
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		slog.Error("error when inserting new user into db", "err", err)
 		return
 	}
 	WriteUserCookie(w, id)
@@ -75,8 +80,11 @@ func (app *Application) getLobby(w http.ResponseWriter, r *http.Request) {
 
 	lobby, err := app.db.GetLobby(r.Context(), IDInt)
 	if err != nil {
-		// TODO: 404 not found for non existant lobby
-		w.WriteHeader(http.StatusInternalServerError)
+		if errors.Is(err, pgx.ErrNoRows) {
+			http.Error(w, "lobby not found", http.StatusNotFound)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 		slog.Error("error when fetching lobby from db", "err", err)
 		return
 	}
@@ -102,8 +110,28 @@ func (app *Application) newLobby(w http.ResponseWriter, r *http.Request) {
 
 	lobby, err := app.db.CreateLobby(r.Context(), lobbyParams)
 	if err != nil {
-		slog.Error("create lobby db insert error", "err", err)
+		switch err {
+
+		case database.ErrLobbyExists:
+			{
+
+				http.Error(w, "lobby already exists", http.StatusConflict)
+			}
+
+		default:
+			{
+
+				slog.Error("error when creating lobby", "err", err)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+			}
+		}
+		return
+	}
+
+	err = encode(w, http.StatusOK, lobby.ID)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		slog.Error("error when encoding json body in create lobby", "err", err)
 		return
 	}
 

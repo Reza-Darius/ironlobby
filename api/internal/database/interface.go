@@ -2,8 +2,18 @@ package database
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
+)
+
+// domain errors to not expose PG internals
+var (
+	ErrUserNotFound = errors.New("user not found")
+	ErrLobbyExists  = errors.New("lobby already exists")
+	ErrUserExists   = errors.New("user already exists")
 )
 
 func (db Database) OpenLobbies(ctx context.Context) (int64, error) {
@@ -19,12 +29,35 @@ func (db Database) GetUser(ctx context.Context, id uuid.UUID) (string, error) {
 func (db Database) NewUser(ctx context.Context, playerName string) (uuid.UUID, error) {
 	q := New(db.pool)
 	player, err := q.InsertNewPlayer(ctx, playerName)
+	if err != nil {
+		pgErr, e := errors.AsType[*pgconn.PgError](err)
+		if e {
+			switch pgErr.Code {
+			case pgerrcode.UniqueViolation:
+				{
+					err = ErrUserExists
+				}
+			}
+		}
+	}
 	return player.ID, err
 }
 
 func (db Database) CreateLobby(ctx context.Context, arg InsertLobbyParams) (Lobby, error) {
 	q := New(db.pool)
-	return q.InsertLobby(ctx, arg)
+	lobby, err := q.InsertLobby(ctx, arg)
+	if err != nil {
+		pgErr, e := errors.AsType[*pgconn.PgError](err)
+		if e {
+			switch pgErr.Code {
+			case pgerrcode.UniqueViolation:
+				{
+					err = ErrLobbyExists
+				}
+			}
+		}
+	}
+	return lobby, err
 }
 
 func (db Database) JoinLobby(ctx context.Context, arg AssignPlayerToLobbyParams) error {

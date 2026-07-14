@@ -8,6 +8,7 @@ import (
 func (app *Application) routes() *chi.Mux {
 	r := chi.NewRouter()
 
+	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 	r.Use(secureHeaders)
 

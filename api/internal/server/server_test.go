@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/reza-darius/ironlobby/internal/database"
@@ -99,4 +100,59 @@ func TestCreateUser(t *testing.T) {
 	}
 
 	assert.Equal(t, name, username.Username, "expecting user name from input and db to be the same")
+
+	res, err = srv.Client().Post(srv.URL+"/api/user", "application/json", bytes.NewBuffer(out))
+	if err != nil {
+		t.Fatalf("failed to get a response, err: %v", err)
+	}
+
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode, "the server should reject duplicate names")
+}
+
+func TestCreateLobby(t *testing.T) {
+	srv := utils.NewTestServer(t, testApp.routes())
+	defer srv.Close()
+
+	res, err := srv.Client().Post(srv.URL+"/api/lobby", "application/json", bytes.NewBuffer([]byte("")))
+	if err != nil {
+		t.Fatalf("failed to get a response, err: %v", err)
+	}
+
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode, "we expect unauthorized")
+
+	username := struct {
+		Username string
+	}{
+		Username: "Skrt",
+	}
+	out, err := json.Marshal(username)
+	if err != nil {
+		t.Fatalf("failed to marshal username")
+	}
+
+	res, err = srv.Client().Post(srv.URL+"/api/user", "application/json", bytes.NewBuffer(out))
+	if err != nil {
+		t.Fatalf("failed to get a response, err: %v", err)
+	}
+
+	assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to create a user")
+
+	lobbyCreateBody := database.InsertLobbyParams {
+		LobbyName: "Historical PVP",
+		StartsAt: time.Now().AddDate(0, 0, 7),
+		Gamemode: database.GamemodeVanilla,
+		Description: "schizo lobby",
+	}
+
+	out, err = json.Marshal(lobbyCreateBody)
+	if err != nil {
+		t.Fatalf("failed to marshal username")
+	}
+
+	res, err = srv.Client().Post(srv.URL+"/api/lobby", "application/json", bytes.NewBuffer(out))
+	if err != nil {
+		t.Fatalf("failed to get a response, err: %v", err)
+	}
+
+	assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to create a lobby")
 }

@@ -45,6 +45,7 @@ func (app *Application) newUser(w http.ResponseWriter, r *http.Request) {
 		pgErr, _ := errors.AsType[*pgconn.PgError](err)
 		if pgErr.Code == pgerrcode.UniqueViolation {
 			// handle duplicate
+			slog.Debug("new user request with duplicate name", "name", username)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}

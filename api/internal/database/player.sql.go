@@ -11,42 +11,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const assignPlayerToLobby = `-- name: AssignPlayerToLobby :exec
-INSERT INTO player_lobby(player_id, lobby_id, country_id)
-VALUES(
-  $1,
-  $2,
-  (SELECT id FROM countries WHERE country_tag = $3)
-)
-`
-
-type AssignPlayerToLobbyParams struct {
-	PlayerID   uuid.UUID `json:"player_id"`
-	LobbyID    int64     `json:"lobby_id"`
-	CountryTag string    `json:"country_tag"`
-}
-
-func (q *Queries) AssignPlayerToLobby(ctx context.Context, arg AssignPlayerToLobbyParams) error {
-	_, err := q.db.Exec(ctx, assignPlayerToLobby, arg.PlayerID, arg.LobbyID, arg.CountryTag)
-	return err
-}
-
-const decrementCountry = `-- name: DecrementCountry :exec
-UPDATE lobby_countries SET occupied_slots = occupied_slots -1 WHERE lobby_id = $1 AND country_id = (
-  SELECT id FROM countries WHERE country_tag = $2
-)
-`
-
-type DecrementCountryParams struct {
-	LobbyID    int64  `json:"lobby_id"`
-	CountryTag string `json:"country_tag"`
-}
-
-func (q *Queries) DecrementCountry(ctx context.Context, arg DecrementCountryParams) error {
-	_, err := q.db.Exec(ctx, decrementCountry, arg.LobbyID, arg.CountryTag)
-	return err
-}
-
 const getAllPlayer = `-- name: GetAllPlayer :many
 SELECT id, player_name FROM player
 `
@@ -72,7 +36,8 @@ func (q *Queries) GetAllPlayer(ctx context.Context) ([]Player, error) {
 }
 
 const getPlayer = `-- name: GetPlayer :one
-SELECT player_name FROM player WHERE id = $1
+SELECT player_name FROM player
+WHERE id = $1
 `
 
 func (q *Queries) GetPlayer(ctx context.Context, id uuid.UUID) (string, error) {
@@ -82,24 +47,8 @@ func (q *Queries) GetPlayer(ctx context.Context, id uuid.UUID) (string, error) {
 	return player_name, err
 }
 
-const incrementCountry = `-- name: IncrementCountry :exec
-UPDATE lobby_countries SET occupied_slots = occupied_slots + 1 WHERE lobby_id = $1 AND country_id = (
-  SELECT id FROM countries WHERE country_tag = $2
-)
-`
-
-type IncrementCountryParams struct {
-	LobbyID    int64  `json:"lobby_id"`
-	CountryTag string `json:"country_tag"`
-}
-
-func (q *Queries) IncrementCountry(ctx context.Context, arg IncrementCountryParams) error {
-	_, err := q.db.Exec(ctx, incrementCountry, arg.LobbyID, arg.CountryTag)
-	return err
-}
-
 const insertNewPlayer = `-- name: InsertNewPlayer :one
-INSERT INTO player(player_name) 
+INSERT INTO player (player_name)
 VALUES ($1)
 RETURNING id, player_name
 `
@@ -109,18 +58,4 @@ func (q *Queries) InsertNewPlayer(ctx context.Context, playerName string) (Playe
 	var i Player
 	err := row.Scan(&i.ID, &i.PlayerName)
 	return i, err
-}
-
-const unassignPlayer = `-- name: UnassignPlayer :exec
-DELETE FROM player_lobby WHERE lobby_id = $1 and player_id = $2
-`
-
-type UnassignPlayerParams struct {
-	LobbyID  int64     `json:"lobby_id"`
-	PlayerID uuid.UUID `json:"player_id"`
-}
-
-func (q *Queries) UnassignPlayer(ctx context.Context, arg UnassignPlayerParams) error {
-	_, err := q.db.Exec(ctx, unassignPlayer, arg.LobbyID, arg.PlayerID)
-	return err
 }

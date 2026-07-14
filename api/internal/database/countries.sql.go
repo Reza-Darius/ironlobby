@@ -9,15 +9,28 @@ import (
 	"context"
 )
 
-const getCountry = `-- name: GetCountry :one
-SELECT id FROM countries WHERE country_tag = $1
+const getCountryID = `-- name: GetCountryID :one
+SELECT id FROM countries
+WHERE country_tag = $1
 `
 
-func (q *Queries) GetCountry(ctx context.Context, countryTag string) (int16, error) {
-	row := q.db.QueryRow(ctx, getCountry, countryTag)
+func (q *Queries) GetCountryID(ctx context.Context, countryTag string) (int16, error) {
+	row := q.db.QueryRow(ctx, getCountryID, countryTag)
 	var id int16
 	err := row.Scan(&id)
 	return id, err
+}
+
+const getCountryTag = `-- name: GetCountryTag :one
+SELECT country_tag FROM countries
+WHERE id = $1
+`
+
+func (q *Queries) GetCountryTag(ctx context.Context, id int16) (string, error) {
+	row := q.db.QueryRow(ctx, getCountryTag, id)
+	var country_tag string
+	err := row.Scan(&country_tag)
+	return country_tag, err
 }
 
 const listCountries = `-- name: ListCountries :many

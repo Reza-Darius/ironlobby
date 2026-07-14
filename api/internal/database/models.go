@@ -73,10 +73,9 @@ type Lobby struct {
 }
 
 type LobbyCountry struct {
-	LobbyID       int64 `json:"lobby_id"`
-	CountryID     int32 `json:"country_id"`
-	OccupiedSlots int32 `json:"occupied_slots"`
-	MaxSlots      int32 `json:"max_slots"`
+	LobbyID   int64 `json:"lobby_id"`
+	CountryID int16 `json:"country_id"`
+	MaxSlots  int32 `json:"max_slots"`
 }
 
 type Player struct {
@@ -87,6 +86,6 @@ type Player struct {
 type PlayerLobby struct {
 	PlayerID  uuid.UUID `json:"player_id"`
 	LobbyID   int64     `json:"lobby_id"`
-	CountryID int32     `json:"country_id"`
+	CountryID int16     `json:"country_id"`
 	JoinedAt  time.Time `json:"joined_at"`
 }

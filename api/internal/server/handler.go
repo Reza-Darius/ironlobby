@@ -139,7 +139,7 @@ func (app *Application) newLobby(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *Application) joinLobby(w http.ResponseWriter, r *http.Request) {
-	joinParams, err := decode[database.AssignPlayerToLobbyParams](r)
+	joinParams, err := decode[database.UpsertPlayerLobbyParams](r)
 	if err != nil {
 		slog.Error("join lobby request body decode error", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)

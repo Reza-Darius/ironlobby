@@ -11,9 +11,11 @@ import (
 
 // domain errors to not expose PG internals
 var (
-	ErrUserNotFound = errors.New("user not found")
-	ErrLobbyExists  = errors.New("lobby already exists")
-	ErrUserExists   = errors.New("user already exists")
+	ErrUserNotFound          = errors.New("user not found")
+	ErrLobbyExists           = errors.New("lobby already exists")
+	ErrUserExists            = errors.New("user already exists")
+	ErrNationSlotsFull       = errors.New("the requested nation's slots are full")
+	ErrPlayerAlreadyAssigned = errors.New("player is already assigned to Nation")
 )
 
 func (db Database) OpenLobbies(ctx context.Context) (int64, error) {
@@ -60,28 +62,51 @@ func (db Database) CreateLobby(ctx context.Context, arg InsertLobbyParams) (Lobb
 	return lobby, err
 }
 
-func (db Database) JoinLobby(ctx context.Context, arg AssignPlayerToLobbyParams) error {
+// this function adds a player to a lobby or changes the player's country tag inside the lobby
+func (db Database) JoinLobby(ctx context.Context, arg UpsertPlayerLobbyParams) error {
 	tx, err := db.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback(ctx)
-	q := New(db.pool)
-	qtx := q.WithTx(tx)
 
-	err = qtx.AssignPlayerToLobby(ctx, arg)
-	if err != nil {
-		return err
-	}
+	q := New(db.pool).WithTx(tx)
 
-	err = qtx.IncrementCountry(ctx, IncrementCountryParams{
+	targetTag := arg.CountryTag
+
+	// we lock the targeted country tag
+	maxSlots, err := q.LockLobbyCountrySlot(ctx, LockLobbyCountrySlotParams{
 		LobbyID:    arg.LobbyID,
-		CountryTag: arg.CountryTag,
+		CountryTag: targetTag,
 	})
 	if err != nil {
 		return err
 	}
 
+	// check limit by counting all the listed entried for the lobby
+	// notably: this excludes the requesting player
+	numOccuppied, err := q.CountCountryOccupants(ctx, CountCountryOccupantsParams{
+		PlayerID:   arg.PlayerID,
+		LobbyID:    arg.LobbyID,
+		CountryTag: targetTag,
+	})
+	if err != nil {
+		return err
+	}
+
+	// if the player is already on that tag inside the lobby this always passes
+	if numOccuppied >= int64(maxSlots) {
+		return ErrNationSlotsFull
+	}
+
+	_, err = q.UpsertPlayerLobby(ctx, UpsertPlayerLobbyParams{
+		CountryTag: targetTag,
+		PlayerID:   arg.PlayerID,
+		LobbyID:    arg.LobbyID,
+	})
+	if err != nil {
+		return err
+	}
 	return tx.Commit(ctx)
 }
 

@@ -17,7 +17,10 @@ const addLobbyCountry = `-- name: AddLobbyCountry :exec
 INSERT INTO lobby_countries (lobby_id, country_id, max_slots)
 VALUES (
     $1,
-    (SELECT id FROM countries WHERE country_tag = $2),
+    (
+        SELECT id FROM countries
+        WHERE country_tag = $2
+    ),
     $3
 )
 `
@@ -33,19 +36,45 @@ func (q *Queries) AddLobbyCountry(ctx context.Context, arg AddLobbyCountryParams
 	return err
 }
 
-const decrementPlayerCount = `-- name: DecrementPlayerCount :exec
-UPDATE lobby SET player_count = player_count - 1 WHERE id = $1
+const countCountryOccupants = `-- name: CountCountryOccupants :one
+SELECT COUNT(*) FROM player_lobby
+WHERE
+    lobby_id = $1 AND country_id
+    = (
+        SELECT id FROM countries
+        WHERE country_tag = $2
+    )
+    AND player_id != $3
 `
 
-func (q *Queries) DecrementPlayerCount(ctx context.Context, id int64) error {
-	_, err := q.db.Exec(ctx, decrementPlayerCount, id)
-	return err
+type CountCountryOccupantsParams struct {
+	LobbyID    int64     `json:"lobby_id"`
+	CountryTag string    `json:"country_tag"`
+	PlayerID   uuid.UUID `json:"player_id"`
+}
+
+func (q *Queries) CountCountryOccupants(ctx context.Context, arg CountCountryOccupantsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countCountryOccupants, arg.LobbyID, arg.CountryTag, arg.PlayerID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const decrementPlayerCount = `-- name: DecrementPlayerCount :one
+UPDATE lobby SET player_count = player_count - 1
+WHERE id = $1 RETURNING player_count
+`
+
+func (q *Queries) DecrementPlayerCount(ctx context.Context, id int64) (int32, error) {
+	row := q.db.QueryRow(ctx, decrementPlayerCount, id)
+	var player_count int32
+	err := row.Scan(&player_count)
+	return player_count, err
 }
 
 const getLobbyCountries = `-- name: GetLobbyCountries :many
 SELECT
     countries.country_tag,
-    lobby_countries.occupied_slots,
     lobby_countries.max_slots
 FROM lobby_countries
 JOIN countries ON lobby_countries.country_id = countries.id
@@ -53,9 +82,8 @@ WHERE lobby_countries.lobby_id = $1
 `
 
 type GetLobbyCountriesRow struct {
-	CountryTag    string `json:"country_tag"`
-	OccupiedSlots int32  `json:"occupied_slots"`
-	MaxSlots      int32  `json:"max_slots"`
+	CountryTag string `json:"country_tag"`
+	MaxSlots   int32  `json:"max_slots"`
 }
 
 func (q *Queries) GetLobbyCountries(ctx context.Context, lobbyID int64) ([]GetLobbyCountriesRow, error) {
@@ -67,7 +95,7 @@ func (q *Queries) GetLobbyCountries(ctx context.Context, lobbyID int64) ([]GetLo
 	var items []GetLobbyCountriesRow
 	for rows.Next() {
 		var i GetLobbyCountriesRow
-		if err := rows.Scan(&i.CountryTag, &i.OccupiedSlots, &i.MaxSlots); err != nil {
+		if err := rows.Scan(&i.CountryTag, &i.MaxSlots); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -79,9 +107,9 @@ func (q *Queries) GetLobbyCountries(ctx context.Context, lobbyID int64) ([]GetLo
 }
 
 const getLobbyInfo = `-- name: GetLobbyInfo :one
-SELECT
-  id, host_player, lobby_name, starts_at, player_count, gamemode, ingame_id, description
-FROM lobby WHERE id = $1
+SELECT id, host_player, lobby_name, starts_at, player_count, gamemode, ingame_id, description
+FROM lobby
+WHERE id = $1
 `
 
 func (q *Queries) GetLobbyInfo(ctx context.Context, id int64) (Lobby, error) {
@@ -137,23 +165,30 @@ func (q *Queries) GetLobbyPlayers(ctx context.Context, lobbyID int64) ([]GetLobb
 	return items, nil
 }
 
-const incrementPlayerCount = `-- name: IncrementPlayerCount :exec
-UPDATE lobby SET player_count = player_count + 1 WHERE id = $1
+const incrementPlayerCount = `-- name: IncrementPlayerCount :one
+UPDATE lobby
+SET player_count = player_count + 1
+WHERE
+    id = $1
+    AND player_count <= 32
+RETURNING player_count
 `
 
-func (q *Queries) IncrementPlayerCount(ctx context.Context, id int64) error {
-	_, err := q.db.Exec(ctx, incrementPlayerCount, id)
-	return err
+func (q *Queries) IncrementPlayerCount(ctx context.Context, id int64) (int32, error) {
+	row := q.db.QueryRow(ctx, incrementPlayerCount, id)
+	var player_count int32
+	err := row.Scan(&player_count)
+	return player_count, err
 }
 
 const insertLobby = `-- name: InsertLobby :one
-INSERT INTO lobby(
+INSERT INTO lobby (
     host_player,
     lobby_name,
     starts_at,
     gamemode,
     description
-) 
+)
 VALUES ($1, $2, $3, $4, $5)
 RETURNING id, host_player, lobby_name, starts_at, player_count, gamemode, ingame_id, description
 `
@@ -188,8 +223,32 @@ func (q *Queries) InsertLobby(ctx context.Context, arg InsertLobbyParams) (Lobby
 	return i, err
 }
 
+const lockLobbyCountrySlot = `-- name: LockLobbyCountrySlot :one
+SELECT max_slots
+FROM lobby_countries
+WHERE
+    lobby_id = $1 AND country_id = (
+        SELECT c.id FROM countries AS c
+        WHERE c.country_tag = $2
+    )
+FOR UPDATE
+`
+
+type LockLobbyCountrySlotParams struct {
+	LobbyID    int64  `json:"lobby_id"`
+	CountryTag string `json:"country_tag"`
+}
+
+func (q *Queries) LockLobbyCountrySlot(ctx context.Context, arg LockLobbyCountrySlotParams) (int32, error) {
+	row := q.db.QueryRow(ctx, lockLobbyCountrySlot, arg.LobbyID, arg.CountryTag)
+	var max_slots int32
+	err := row.Scan(&max_slots)
+	return max_slots, err
+}
+
 const openLobbies = `-- name: OpenLobbies :one
-SELECT COUNT(*) FROM lobby WHERE starts_at <= NOW()
+SELECT COUNT(*) FROM lobby
+WHERE starts_at <= NOW()
 `
 
 func (q *Queries) OpenLobbies(ctx context.Context) (int64, error) {
@@ -199,8 +258,41 @@ func (q *Queries) OpenLobbies(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+const searchPlayerInLobby = `-- name: SearchPlayerInLobby :one
+SELECT country_id FROM player_lobby
+WHERE lobby_id = $1 AND player_id = $2
+`
+
+type SearchPlayerInLobbyParams struct {
+	LobbyID  int64     `json:"lobby_id"`
+	PlayerID uuid.UUID `json:"player_id"`
+}
+
+func (q *Queries) SearchPlayerInLobby(ctx context.Context, arg SearchPlayerInLobbyParams) (int16, error) {
+	row := q.db.QueryRow(ctx, searchPlayerInLobby, arg.LobbyID, arg.PlayerID)
+	var country_id int16
+	err := row.Scan(&country_id)
+	return country_id, err
+}
+
+const unassignPlayer = `-- name: UnassignPlayer :exec
+DELETE FROM player_lobby
+WHERE lobby_id = $1 AND player_id = $2
+`
+
+type UnassignPlayerParams struct {
+	LobbyID  int64     `json:"lobby_id"`
+	PlayerID uuid.UUID `json:"player_id"`
+}
+
+func (q *Queries) UnassignPlayer(ctx context.Context, arg UnassignPlayerParams) error {
+	_, err := q.db.Exec(ctx, unassignPlayer, arg.LobbyID, arg.PlayerID)
+	return err
+}
+
 const updateGameId = `-- name: UpdateGameId :exec
-UPDATE lobby SET ingame_id = $1 WHERE id = $2
+UPDATE lobby SET ingame_id = $1
+WHERE id = $2
 `
 
 type UpdateGameIdParams struct {
@@ -211,4 +303,35 @@ type UpdateGameIdParams struct {
 func (q *Queries) UpdateGameId(ctx context.Context, arg UpdateGameIdParams) error {
 	_, err := q.db.Exec(ctx, updateGameId, arg.IngameID, arg.ID)
 	return err
+}
+
+const upsertPlayerLobby = `-- name: UpsertPlayerLobby :one
+INSERT INTO player_lobby (player_id, lobby_id, country_id)
+SELECT
+    $1,
+    $2,
+    id
+FROM countries
+WHERE country_tag = $3
+ON CONFLICT (lobby_id, player_id)
+DO UPDATE SET country_id = excluded.country_id
+RETURNING player_id, lobby_id, country_id, joined_at
+`
+
+type UpsertPlayerLobbyParams struct {
+	PlayerID   uuid.UUID `json:"player_id"`
+	LobbyID    int64     `json:"lobby_id"`
+	CountryTag string    `json:"country_tag"`
+}
+
+func (q *Queries) UpsertPlayerLobby(ctx context.Context, arg UpsertPlayerLobbyParams) (PlayerLobby, error) {
+	row := q.db.QueryRow(ctx, upsertPlayerLobby, arg.PlayerID, arg.LobbyID, arg.CountryTag)
+	var i PlayerLobby
+	err := row.Scan(
+		&i.PlayerID,
+		&i.LobbyID,
+		&i.CountryID,
+		&i.JoinedAt,
+	)
+	return i, err
 }

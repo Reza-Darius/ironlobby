@@ -104,10 +104,10 @@ func TestInsert(t *testing.T) {
 	assert.Equal(t, len(lobbyInfo), 3)
 
 	for _, row := range lobbyInfo {
-		t.Logf("lobby country row: tag = %v, occupied_slots = %v, max_slots = %v", row.CountryTag, row.OccupiedSlots, row.MaxSlots)
+		t.Logf("lobby country row: tag = %v, max_slots = %v", row.CountryTag, row.MaxSlots)
 	}
 
-	err = testDB.AssignPlayerToLobby(ctx, AssignPlayerToLobbyParams{
+	_, err = testDB.AssignPlayerToLobby(ctx, AssignPlayerToLobbyParams{
 		LobbyID:    lobby.ID,
 		CountryTag: "GER",
 		PlayerID:   regPlayer["pray"],
@@ -115,7 +115,7 @@ func TestInsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to register pray to GER %v", err)
 	}
-	err = testDB.AssignPlayerToLobby(ctx, AssignPlayerToLobbyParams{
+	_, err = testDB.AssignPlayerToLobby(ctx, AssignPlayerToLobbyParams{
 		LobbyID:    lobby.ID,
 		CountryTag: "JAP",
 		PlayerID:   regPlayer["inno"],
@@ -123,7 +123,7 @@ func TestInsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to register inno to JAP %v", err)
 	}
-	err = testDB.AssignPlayerToLobby(ctx, AssignPlayerToLobbyParams{
+	_, err = testDB.AssignPlayerToLobby(ctx, AssignPlayerToLobbyParams{
 		LobbyID:    lobby.ID,
 		CountryTag: "SOV",
 		PlayerID:   regPlayer["skrt"],

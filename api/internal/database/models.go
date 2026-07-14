@@ -69,6 +69,7 @@ type Lobby struct {
 	PlayerCount int32       `json:"player_count"`
 	Gamemode    Gamemode    `json:"gamemode"`
 	IngameID    pgtype.Text `json:"ingame_id"`
+	Description string      `json:"description"`
 }
 
 type LobbyCountry struct {

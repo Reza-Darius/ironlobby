@@ -80,7 +80,7 @@ func (q *Queries) GetLobbyCountries(ctx context.Context, lobbyID int64) ([]GetLo
 
 const getLobbyInfo = `-- name: GetLobbyInfo :one
 SELECT
-  id, host_player, lobby_name, starts_at, player_count, gamemode, ingame_id
+  id, host_player, lobby_name, starts_at, player_count, gamemode, ingame_id, description
 FROM lobby WHERE id = $1
 `
 
@@ -95,6 +95,7 @@ func (q *Queries) GetLobbyInfo(ctx context.Context, id int64) (Lobby, error) {
 		&i.PlayerCount,
 		&i.Gamemode,
 		&i.IngameID,
+		&i.Description,
 	)
 	return i, err
 }
@@ -150,17 +151,19 @@ INSERT INTO lobby(
     host_player,
     lobby_name,
     starts_at,
-    gamemode
+    gamemode,
+    description
 ) 
-VALUES ($1, $2, $3, $4)
-RETURNING id, host_player, lobby_name, starts_at, player_count, gamemode, ingame_id
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, host_player, lobby_name, starts_at, player_count, gamemode, ingame_id, description
 `
 
 type InsertLobbyParams struct {
-	HostPlayer uuid.UUID `json:"host_player"`
-	LobbyName  string    `json:"lobby_name"`
-	StartsAt   time.Time `json:"starts_at"`
-	Gamemode   Gamemode  `json:"gamemode"`
+	HostPlayer  uuid.UUID `json:"host_player"`
+	LobbyName   string    `json:"lobby_name"`
+	StartsAt    time.Time `json:"starts_at"`
+	Gamemode    Gamemode  `json:"gamemode"`
+	Description string    `json:"description"`
 }
 
 func (q *Queries) InsertLobby(ctx context.Context, arg InsertLobbyParams) (Lobby, error) {
@@ -169,6 +172,7 @@ func (q *Queries) InsertLobby(ctx context.Context, arg InsertLobbyParams) (Lobby
 		arg.LobbyName,
 		arg.StartsAt,
 		arg.Gamemode,
+		arg.Description,
 	)
 	var i Lobby
 	err := row.Scan(
@@ -179,6 +183,7 @@ func (q *Queries) InsertLobby(ctx context.Context, arg InsertLobbyParams) (Lobby
 		&i.PlayerCount,
 		&i.Gamemode,
 		&i.IngameID,
+		&i.Description,
 	)
 	return i, err
 }

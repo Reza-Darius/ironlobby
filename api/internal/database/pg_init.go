@@ -3,12 +3,14 @@ package database
 
 import (
 	"context"
+	"log"
 	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
+	"github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
 type Database struct {
@@ -45,4 +47,34 @@ func NewDB(DBURL string) (*Database, error) {
 	}
 
 	return &Database{pool}, nil
+}
+
+
+// NewTestDBContainer caller should make sure to close the container when done
+func NewTestDBContainer() (*Database, *postgres.PostgresContainer) {
+	ctx := context.Background()
+
+	pg, err := postgres.Run(
+		ctx,
+		"postgres:18",
+		postgres.WithDatabase("testdb"),
+		postgres.WithUsername("test"),
+		postgres.WithPassword("test"),
+		postgres.BasicWaitStrategies(),
+	)
+
+	if err != nil {
+		log.Fatalf("failed to start postgres container: %v", err)
+	}
+
+	connStr, err := pg.ConnectionString(ctx, "sslmode=disable")
+	if err != nil {
+		log.Fatalf("failed to get connection string: %v", err)
+	}
+
+	db, err := NewDB(connStr)
+	if err != nil {
+		log.Fatalf("failed to connect to db: %v", err)
+	}
+	return db, pg
 }

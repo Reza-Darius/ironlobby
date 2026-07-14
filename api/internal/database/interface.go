@@ -27,7 +27,7 @@ func (db Database) CreateLobby(ctx context.Context, arg InsertLobbyParams) (Lobb
 	return q.InsertLobby(ctx, arg)
 }
 
-func (db Database) JoinLobby(ctx context.Context, lobbyID int64, playerID uuid.UUID, countryTag string) error {
+func (db Database) JoinLobby(ctx context.Context, arg AssignPlayerToLobbyParams) error {
 	tx, err := db.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -36,18 +36,14 @@ func (db Database) JoinLobby(ctx context.Context, lobbyID int64, playerID uuid.U
 	q := New(db.pool)
 	qtx := q.WithTx(tx)
 
-	err = qtx.AssignPlayerToLobby(ctx, AssignPlayerToLobbyParams{
-		PlayerID:   playerID,
-		LobbyID:    lobbyID,
-		CountryTag: countryTag,
-	})
+	err = qtx.AssignPlayerToLobby(ctx, arg)
 	if err != nil {
 		return err
 	}
 
 	err = qtx.IncrementCountry(ctx, IncrementCountryParams{
-		LobbyID:    lobbyID,
-		CountryTag: countryTag,
+		LobbyID:    arg.LobbyID,
+		CountryTag: arg.CountryTag,
 	})
 	if err != nil {
 		return err

@@ -27,9 +27,10 @@ INSERT INTO lobby(
     host_player,
     lobby_name,
     starts_at,
-    gamemode
+    gamemode,
+    description
 ) 
-VALUES ($1, $2, $3, $4)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
 -- name: UpdateGameId :exec

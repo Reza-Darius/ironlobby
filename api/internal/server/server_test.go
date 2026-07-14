@@ -107,7 +107,7 @@ func TestCreateUser(t *testing.T) {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
 
-	assert.Equal(t, http.StatusBadRequest, res.StatusCode, "the server should reject duplicate names")
+	assert.Equal(t, http.StatusConflict, res.StatusCode, "the server should reject duplicate names")
 }
 
 func TestCreateLobby(t *testing.T) {
@@ -176,7 +176,7 @@ func TestCreateLobby(t *testing.T) {
 	}
 
 	// fetch newly created lobby
-	res, err = srv.Client().Get(srv.URL + "/api/" + strconv.FormatInt(lobbyID, 10))
+	res, err = srv.Client().Get(srv.URL + "/api/lobby/" + strconv.FormatInt(lobbyID, 10))
 	if err != nil {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}

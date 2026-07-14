@@ -15,14 +15,17 @@ func (app *Application) routes() *chi.Mux {
 	r.Route("/api", func(r chi.Router) {
 		// unauthorized routes
 		r.Get("/health", app.healthcheck)
-		r.Get("/{lobby_id}", app.getLobby)
+		r.Get("/lobby/{lobby_id}", app.getLobby)
 		r.Post("/user", app.newUser)
 
 		// authorized routes
 		r.Group(func(r chi.Router) {
 			r.Use(app.AuthSession)
 			r.Post("/lobby", app.newLobby)
-			r.Post("/{lobby_id}", app.joinLobby)
+			// r.Patch("/lobby/{lobby_id}", app.editLobby)
+
+			r.Post("/lobby/{lobby_id}/player", app.joinLobby)
+			// r.Patch("/lobby/{lobby_id}/player", app.editPlayerSlot)
 		})
 	})
 

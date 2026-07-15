@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -70,6 +71,7 @@ func getIDs(r *http.Request) (uuid.UUID, int64, error) {
 func checkHost(db *database.Database, w http.ResponseWriter, r *http.Request) (uuid.UUID, int64, error) {
 	playerID, lobbyID, err := getIDs(r)
 	if err != nil {
+		slog.Error("couldnt retrieve lobby or player id", "err", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return uuid.UUID{}, 0, fmt.Errorf("couldnt get IDs, err: %v", err)
 	}
@@ -77,11 +79,13 @@ func checkHost(db *database.Database, w http.ResponseWriter, r *http.Request) (u
 	// check host privileges
 	isHost, err := db.PlayerIsHost(r.Context(), playerID, lobbyID)
 	if err != nil {
+		slog.Error("couldnt check host in db", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return uuid.UUID{}, 0, fmt.Errorf("couldnt check DB for host, err: %v", err)
 	}
 
 	if !isHost {
+		slog.Error("user is not host")
 		w.WriteHeader(http.StatusUnauthorized)
 		return uuid.UUID{}, 0, fmt.Errorf("request user is not host, err: %v", err)
 	}

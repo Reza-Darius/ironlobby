@@ -72,6 +72,15 @@ CREATE TABLE IF NOT EXISTS lobby (
     CHECK (player_count BETWEEN 1 AND 32)
 );
 
+CREATE TABLE IF NOT EXISTS lobby_countries (
+    lobby_id BIGINT REFERENCES lobby (id) ON DELETE CASCADE,
+    country_id SMALLINT REFERENCES countries (id) ON DELETE CASCADE,
+    max_slots INT NOT NULL DEFAULT 1,
+
+    CHECK (max_slots <= 32),
+    PRIMARY KEY (lobby_id, country_id)
+);
+
 CREATE TABLE player_lobby (
     player_id UUID NOT NULL REFERENCES player (id) ON DELETE CASCADE,
     lobby_id BIGINT NOT NULL,
@@ -84,16 +93,6 @@ CREATE TABLE player_lobby (
     REFERENCES lobby_countries (lobby_id, country_id)
     ON DELETE CASCADE
 );
-
-CREATE TABLE IF NOT EXISTS lobby_countries (
-    lobby_id BIGINT REFERENCES lobby (id) ON DELETE CASCADE,
-    country_id SMALLINT REFERENCES countries (id) ON DELETE CASCADE,
-    max_slots INT NOT NULL DEFAULT 1,
-
-    CHECK (max_slots <= 32),
-    PRIMARY KEY (lobby_id, country_id)
-);
-
 
 -- +goose Down
 SELECT 'down SQL query';

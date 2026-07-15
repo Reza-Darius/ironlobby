@@ -259,7 +259,7 @@ func TestJoinLobby(t *testing.T) {
 	}
 
 	// join lobby
-	joinParam := database.AssignPlayerToLobbyParams{
+	joinParam := database.UpsertPlayerLobbyParams{
 		CountryTag: "GER",
 	}
 
@@ -274,4 +274,8 @@ func TestJoinLobby(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
+
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode, "the country wasnt added yet")
+
+	// add country
 }

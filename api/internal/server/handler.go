@@ -45,7 +45,6 @@ func (app *Application) newUser(w http.ResponseWriter, r *http.Request) {
 
 		case database.ErrUserExists:
 			{
-
 				http.Error(w, "user already exists", http.StatusConflict)
 			}
 
@@ -114,13 +113,11 @@ func (app *Application) newLobby(w http.ResponseWriter, r *http.Request) {
 
 		case database.ErrLobbyExists:
 			{
-
 				http.Error(w, "lobby already exists", http.StatusConflict)
 			}
 
 		default:
 			{
-
 				slog.Error("error when creating lobby", "err", err)
 				http.Error(w, "internal server error", http.StatusInternalServerError)
 			}
@@ -166,8 +163,31 @@ func (app *Application) joinLobby(w http.ResponseWriter, r *http.Request) {
 
 	err = app.db.JoinLobby(r.Context(), joinParams)
 	if err != nil {
-		// TODO: error code in case country is occupied
+		switch err {
+		case database.ErrNationSlotsFull:
+			{
+				http.Error(w, "requested nation is full", http.StatusBadRequest)
+				return
+			}
+		case database.ErrNationNotAvail:
+			{
+				http.Error(w, "requested nation is unavailable", http.StatusBadRequest)
+				return
+			}
+
+		default:
+			{
+				slog.Error("error when creating lobby", "err", err)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+			}
+		}
 	}
 
 	slog.Info("player joined lobby", "player", joinParams.PlayerID.String(), "lobby", joinParams.LobbyID, "tag", joinParams.CountryTag)
+}
+
+func (app *Application) editLobby(w http.ResponseWriter, r *http.Request) {
+	// check host privileges
+	// parse lobby settings
+	// parse country settings
 }

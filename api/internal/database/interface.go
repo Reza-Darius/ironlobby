@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
@@ -15,6 +16,7 @@ var (
 	ErrLobbyExists           = errors.New("lobby already exists")
 	ErrUserExists            = errors.New("user already exists")
 	ErrNationSlotsFull       = errors.New("the requested nation's slots are full")
+	ErrNationNotAvail        = errors.New("the requested nation is not available")
 	ErrPlayerAlreadyAssigned = errors.New("player is already assigned to Nation")
 )
 
@@ -62,7 +64,7 @@ func (db Database) CreateLobby(ctx context.Context, arg InsertLobbyParams) (Lobb
 	return lobby, err
 }
 
-// this function adds a player to a lobby or changes the player's country tag inside the lobby
+// JoinLobby adds a player to a lobby or changes the player's country tag inside the lobby
 func (db Database) JoinLobby(ctx context.Context, arg UpsertPlayerLobbyParams) error {
 	tx, err := db.pool.Begin(ctx)
 	if err != nil {
@@ -80,6 +82,9 @@ func (db Database) JoinLobby(ctx context.Context, arg UpsertPlayerLobbyParams) e
 		CountryTag: targetTag,
 	})
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			return ErrNationNotAvail
+		}
 		return err
 	}
 

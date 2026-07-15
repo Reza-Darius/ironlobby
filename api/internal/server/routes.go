@@ -22,7 +22,7 @@ func (app *Application) routes() *chi.Mux {
 		r.Group(func(r chi.Router) {
 			r.Use(app.AuthSession)
 			r.Post("/lobby", app.newLobby)
-			// r.Patch("/lobby/{lobby_id}", app.editLobby)
+			r.Patch("/lobby/{lobby_id}", app.editLobby)
 
 			r.Post("/lobby/{lobby_id}/player", app.joinLobby)
 			// r.Patch("/lobby/{lobby_id}/player", app.editPlayerSlot)

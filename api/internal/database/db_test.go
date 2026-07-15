@@ -107,7 +107,7 @@ func TestInsert(t *testing.T) {
 		t.Logf("lobby country row: tag = %v, max_slots = %v", row.CountryTag, row.MaxSlots)
 	}
 
-	_, err = testDB.AssignPlayerToLobby(ctx, AssignPlayerToLobbyParams{
+	_, err = testDB.UpsertPlayerLobby(ctx, UpsertPlayerLobbyParams{
 		LobbyID:    lobby.ID,
 		CountryTag: "GER",
 		PlayerID:   regPlayer["pray"],
@@ -115,7 +115,7 @@ func TestInsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to register pray to GER %v", err)
 	}
-	_, err = testDB.AssignPlayerToLobby(ctx, AssignPlayerToLobbyParams{
+	_, err = testDB.UpsertPlayerLobby(ctx, UpsertPlayerLobbyParams{
 		LobbyID:    lobby.ID,
 		CountryTag: "JAP",
 		PlayerID:   regPlayer["inno"],
@@ -123,7 +123,7 @@ func TestInsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to register inno to JAP %v", err)
 	}
-	_, err = testDB.AssignPlayerToLobby(ctx, AssignPlayerToLobbyParams{
+	_, err = testDB.UpsertPlayerLobby(ctx, UpsertPlayerLobbyParams{
 		LobbyID:    lobby.ID,
 		CountryTag: "SOV",
 		PlayerID:   regPlayer["skrt"],

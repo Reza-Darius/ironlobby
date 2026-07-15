@@ -1,6 +1,8 @@
 package server
 
 import (
+	"log/slog"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -13,6 +15,7 @@ func (app *Application) routes() *chi.Mux {
 	r.Use(secureHeaders)
 
 	if app.config.DebugCors {
+		slog.Info("CORS debug enabled")
 		r.Use(CorsDebug)
 	}
 

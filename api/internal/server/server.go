@@ -6,18 +6,20 @@ import (
 	"net/http"
 
 	"github.com/reza-darius/ironlobby/internal/database"
+	"github.com/reza-darius/ironlobby/internal/utils"
 )
 
 type Application struct {
 	db *database.Database
+	config *utils.AppConfig
 }
 
-func Run(addr string, port string, db *database.Database) error {
+func Run(config *utils.AppConfig, db *database.Database) error {
 	app := Application {
 		db: db,
 	}
 
-	a := addr + ":" + port
+	a := config.Addr + ":" + config.Port
 	slog.Info("listening", "addr", a)
 
 	err := http.ListenAndServe(a, app.routes())

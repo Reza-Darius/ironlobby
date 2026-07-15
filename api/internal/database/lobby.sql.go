@@ -37,16 +37,22 @@ func (q *Queries) CountCountryOccupants(ctx context.Context, arg CountCountryOcc
 	return count, err
 }
 
-const decrementPlayerCount = `-- name: DecrementPlayerCount :one
-UPDATE lobby SET player_count = player_count - 1
-WHERE id = $1 RETURNING player_count
+const deleteLobbyCountry = `-- name: DeleteLobbyCountry :exec
+DELETE FROM lobby_countries
+WHERE lobby_id = $1 AND country_id = (
+    SELECT id FROM countries
+    WHERE country_tag = $2
+)
 `
 
-func (q *Queries) DecrementPlayerCount(ctx context.Context, id int64) (int32, error) {
-	row := q.db.QueryRow(ctx, decrementPlayerCount, id)
-	var player_count int32
-	err := row.Scan(&player_count)
-	return player_count, err
+type DeleteLobbyCountryParams struct {
+	LobbyID    int64  `json:"lobby_id"`
+	CountryTag string `json:"country_tag"`
+}
+
+func (q *Queries) DeleteLobbyCountry(ctx context.Context, arg DeleteLobbyCountryParams) error {
+	_, err := q.db.Exec(ctx, deleteLobbyCountry, arg.LobbyID, arg.CountryTag)
+	return err
 }
 
 const getLobbyCountries = `-- name: GetLobbyCountries :many
@@ -101,7 +107,7 @@ func (q *Queries) GetLobbyFromHostID(ctx context.Context, arg GetLobbyFromHostID
 }
 
 const getLobbyInfo = `-- name: GetLobbyInfo :one
-SELECT id, host_player, lobby_name, starts_at, player_count, gamemode, ingame_id, description
+SELECT id, host_player, lobby_name, starts_at, gamemode, ingame_id, description
 FROM lobby
 WHERE id = $1
 `
@@ -114,7 +120,6 @@ func (q *Queries) GetLobbyInfo(ctx context.Context, id int64) (Lobby, error) {
 		&i.HostPlayer,
 		&i.LobbyName,
 		&i.StartsAt,
-		&i.PlayerCount,
 		&i.Gamemode,
 		&i.IngameID,
 		&i.Description,
@@ -159,22 +164,6 @@ func (q *Queries) GetLobbyPlayers(ctx context.Context, lobbyID int64) ([]GetLobb
 	return items, nil
 }
 
-const incrementPlayerCount = `-- name: IncrementPlayerCount :one
-UPDATE lobby
-SET player_count = player_count + 1
-WHERE
-    id = $1
-    AND player_count <= 32
-RETURNING player_count
-`
-
-func (q *Queries) IncrementPlayerCount(ctx context.Context, id int64) (int32, error) {
-	row := q.db.QueryRow(ctx, incrementPlayerCount, id)
-	var player_count int32
-	err := row.Scan(&player_count)
-	return player_count, err
-}
-
 const insertLobby = `-- name: InsertLobby :one
 INSERT INTO lobby (
     host_player,
@@ -184,7 +173,7 @@ INSERT INTO lobby (
     description
 )
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, host_player, lobby_name, starts_at, player_count, gamemode, ingame_id, description
+RETURNING id, host_player, lobby_name, starts_at, gamemode, ingame_id, description
 `
 
 type InsertLobbyParams struct {
@@ -209,7 +198,6 @@ func (q *Queries) InsertLobby(ctx context.Context, arg InsertLobbyParams) (Lobby
 		&i.HostPlayer,
 		&i.LobbyName,
 		&i.StartsAt,
-		&i.PlayerCount,
 		&i.Gamemode,
 		&i.IngameID,
 		&i.Description,
@@ -284,30 +272,17 @@ func (q *Queries) UnassignPlayer(ctx context.Context, arg UnassignPlayerParams) 
 	return err
 }
 
-const updateGameId = `-- name: UpdateGameId :exec
-UPDATE lobby SET ingame_id = $1
-WHERE id = $2
-`
-
-type UpdateGameIdParams struct {
-	IngameID pgtype.Text `json:"ingame_id"`
-	ID       int64       `json:"id"`
-}
-
-func (q *Queries) UpdateGameId(ctx context.Context, arg UpdateGameIdParams) error {
-	_, err := q.db.Exec(ctx, updateGameId, arg.IngameID, arg.ID)
-	return err
-}
-
 const updateLobby = `-- name: UpdateLobby :one
 UPDATE lobby
 SET
+    -- we use COALESCE takes the first, non-null value from left to right
+    -- sqlc.nargs() specifies nullable arguments
     lobby_name = COALESCE($1, lobby_name),
     description = COALESCE($2, description),
     starts_at = COALESCE($3, starts_at),
     ingame_id = COALESCE($4, ingame_id)
 WHERE id = $5
-RETURNING id, host_player, lobby_name, starts_at, player_count, gamemode, ingame_id, description
+RETURNING id, host_player, lobby_name, starts_at, gamemode, ingame_id, description
 `
 
 type UpdateLobbyParams struct {
@@ -332,7 +307,6 @@ func (q *Queries) UpdateLobby(ctx context.Context, arg UpdateLobbyParams) (Lobby
 		&i.HostPlayer,
 		&i.LobbyName,
 		&i.StartsAt,
-		&i.PlayerCount,
 		&i.Gamemode,
 		&i.IngameID,
 		&i.Description,
@@ -385,6 +359,7 @@ type UpsertPlayerLobbyParams struct {
 	CountryTag string    `json:"country_tag"`
 }
 
+// when the player is already in the lobby, we just update the tag
 func (q *Queries) UpsertPlayerLobby(ctx context.Context, arg UpsertPlayerLobbyParams) (PlayerLobby, error) {
 	row := q.db.QueryRow(ctx, upsertPlayerLobby, arg.PlayerID, arg.LobbyID, arg.CountryTag)
 	var i PlayerLobby

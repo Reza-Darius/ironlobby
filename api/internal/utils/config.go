@@ -11,6 +11,7 @@ type AppConfig struct {
 	Port          string `env:"PORT" env-default:"80"`
 	MigrationPath string `env:"MIGRATION_PATH"`
 	DBUrl         string `env:"DATABASE_URL"`
+	Debug_cors    bool   `env:"DEBUG_CORS" env-default:false`
 }
 
 func LoadConfigEnv() (AppConfig, error) {

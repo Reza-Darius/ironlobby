@@ -65,7 +65,6 @@ CREATE TABLE IF NOT EXISTS lobby (
     host_player UUID NOT NULL REFERENCES player (id) ON DELETE CASCADE,
     lobby_name TEXT NOT NULL,
     starts_at TIMESTAMPTZ NOT NULL,
-    player_count INT NOT NULL DEFAULT 1,
     gamemode GAMEMODE NOT NULL,
     ingame_id CHAR(17),
     description VARCHAR(1000) NOT NULL,

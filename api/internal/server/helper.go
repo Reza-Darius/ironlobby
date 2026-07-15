@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/reza-darius/ironlobby/internal/database"
 )
 
 // helper functions for encoding json bodies
@@ -61,6 +62,28 @@ func getIDs(r *http.Request) (uuid.UUID, int64, error) {
 	lobbyID, err := strconv.ParseInt(lID, 10, 64)
 	if err != nil {
 		return uuid.UUID{}, 0, err
+	}
+	return playerID, lobbyID, nil
+}
+
+// returns IDs if the user id is host for the lobby id
+func checkHost(db *database.Database, w http.ResponseWriter, r *http.Request) (uuid.UUID, int64, error) {
+	playerID, lobbyID, err := getIDs(r)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return uuid.UUID{}, 0, fmt.Errorf("couldnt get IDs, err: %v", err)
+	}
+
+	// check host privileges
+	isHost, err := db.PlayerIsHost(r.Context(), playerID, lobbyID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return uuid.UUID{}, 0, fmt.Errorf("couldnt check DB for host, err: %v", err)
+	}
+
+	if !isHost {
+		w.WriteHeader(http.StatusUnauthorized)
+		return uuid.UUID{}, 0, fmt.Errorf("request user is not host, err: %v", err)
 	}
 	return playerID, lobbyID, nil
 }

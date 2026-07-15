@@ -67,7 +67,6 @@ type Lobby struct {
 	HostPlayer  uuid.UUID   `json:"host_player"`
 	LobbyName   string      `json:"lobby_name"`
 	StartsAt    time.Time   `json:"starts_at"`
-	PlayerCount int32       `json:"player_count"`
 	Gamemode    Gamemode    `json:"gamemode"`
 	IngameID    pgtype.Text `json:"ingame_id"`
 	Description string      `json:"description"`

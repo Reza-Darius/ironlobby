@@ -57,7 +57,7 @@ func (app *Application) newUser(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	WriteUserCookie(w, id)
+	WriteUserCookie(w, id, app.config.Debug_cors)
 
 	slog.Info("new user registered", "username", username, "id", id)
 }
@@ -205,23 +205,8 @@ func (app *Application) joinLobby(w http.ResponseWriter, r *http.Request) {
 func (app *Application) updateLobby(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context();
 
-	playerID, lobbyID, err := getIDs(r)
+	_, lobbyID, err := checkHost(app.db, w, r)
 	if err != nil {
-		slog.Error("couldnt retrieve IDs", "err", err)
-		http.Error(w, "couldnt retrieve ids", http.StatusBadRequest)
-		return
-	}
-
-	// check host privileges
-	isHost, err := app.db.PlayerIsHost(ctx, playerID, lobbyID)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		slog.Error("error when checking host privileges", "err", err)
-		return
-	}
-
-	if !isHost {
-		http.Error(w, "cant edit lobby without host privileges", http.StatusUnauthorized)
 		return
 	}
 
@@ -246,23 +231,9 @@ func (app *Application) updateLobby(w http.ResponseWriter, r *http.Request) {
 func (app *Application) addLobbyCountry(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context();
 
-	playerID, lobbyID, err := getIDs(r)
-	if err != nil {
-		slog.Error("couldnt retrieve IDs", "err", err)
-		http.Error(w, "couldnt retrieve ids", http.StatusBadRequest)
-		return
-	}
 
-	// check host privileges
-	isHost, err := app.db.PlayerIsHost(ctx, playerID, lobbyID)
+	_, lobbyID, err := checkHost(app.db, w, r)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		slog.Error("error when checking host privileges", "err", err)
-		return
-	}
-
-	if !isHost {
-		http.Error(w, "cant add country without host privileges", http.StatusUnauthorized)
 		return
 	}
 
@@ -294,4 +265,29 @@ func (app *Application) addLobbyCountry(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	slog.Info("added country to lobby", "lobby_id", lobbyID, "country", addLobbyCountryParams.CountryTag, "max_slots", addLobbyCountryParams.MaxSlots)
+}
+
+func (app *Application) deleteLobbyCountry(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context();
+	_, lobbyID, err := checkHost(app.db, w, r)
+	if err != nil {
+		return
+	}
+
+	// parse body
+	arg, err := decode[database.DeleteLobbyCountryParams](r)
+	if err != nil {
+		slog.Error("add lobby country request body decode error", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	arg.LobbyID = lobbyID
+
+	err = app.db.DeleteLobbyCountry(ctx, arg)
+	if err != nil {
+		slog.Error("error when deleting lobby country", "err", err)
+		http.Error(w, "unable to fulfill write call", http.StatusInternalServerError)
+		return
+	}
 }

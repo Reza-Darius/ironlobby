@@ -158,14 +158,10 @@ func (db Database) PlayerIsHost(ctx context.Context, playerID uuid.UUID, lobbyID
 	return true, nil
 }
 
-// AddLobbyCountries adds a country to the lobby, or if the tag is alreaddy registered, updates the max slots
-func (db Database) AddLobbyCountries(ctx context.Context, lobbyID int64, countryTag string, maxSlots int16) error {
+// AddLobbyCountry adds a country to the lobby, or if the tag is alreaddy registered, updates the max slots
+func (db Database) AddLobbyCountry(ctx context.Context, arg UpsertLobbyCountryParams) error {
 	q := New(db.pool)
-	_, err := q.UpsertLobbyCountry(ctx, UpsertLobbyCountryParams{
-		LobbyID:    lobbyID,
-		CountryTag: countryTag,
-		MaxSlots:   maxSlots,
-	})
+	_, err := q.UpsertLobbyCountry(ctx, arg)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return ErrCountryDoesntExist

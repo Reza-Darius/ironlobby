@@ -222,7 +222,9 @@ func (app *Application) addLobbyCountry(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = app.db.AddLobbyCountries(ctx, lobbyID, addLobbyCountryParams.CountryTag, addLobbyCountryParams.MaxSlots)
+	addLobbyCountryParams.LobbyID = lobbyID
+
+	err = app.db.AddLobbyCountry(ctx, addLobbyCountryParams)
 	if err != nil {
 		switch err {
 		case database.ErrCountryDoesntExist:
@@ -239,5 +241,5 @@ func (app *Application) addLobbyCountry(w http.ResponseWriter, r *http.Request) 
 		}
 		return
 	}
-	slog.Info("added country to lobby", "lobby", lobbyID, "country", addLobbyCountryParams.CountryTag, "max_slots", addLobbyCountryParams.MaxSlots)
+	slog.Info("added country to lobby", "lobby_id", lobbyID, "country", addLobbyCountryParams.CountryTag, "max_slots", addLobbyCountryParams.MaxSlots)
 }

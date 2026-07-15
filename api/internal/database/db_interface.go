@@ -49,13 +49,19 @@ func (db *Database) NewUser(ctx context.Context, playerName string) (uuid.UUID, 
 }
 
 type CreateLobbyRequest struct {
-	Lobby InsertLobbyParams `json:"lobby"`
+	Lobby     InsertLobbyParams          `json:"lobby"`
 	Countries []UpsertLobbyCountryParams `json:"countries"`
 }
 
-func (db *Database) CreateLobby(ctx context.Context, arg InsertLobbyParams) (Lobby, error) {
-	q := New(db.pool)
-	lobby, err := q.InsertLobby(ctx, arg)
+func (db *Database) CreateLobby(ctx context.Context, arg CreateLobbyRequest) (Lobby, error) {
+	tx, err := db.pool.Begin(ctx)
+	if err != nil {
+		return Lobby{}, err
+	}
+	defer tx.Rollback(ctx)
+	q := New(db.pool).WithTx(tx)
+
+	lobby, err := q.InsertLobby(ctx, arg.Lobby)
 	if err != nil {
 		pgErr, e := errors.AsType[*pgconn.PgError](err)
 		if e {
@@ -66,8 +72,29 @@ func (db *Database) CreateLobby(ctx context.Context, arg InsertLobbyParams) (Lob
 				}
 			}
 		}
+		return Lobby{}, err
 	}
-	return lobby, err
+
+	// batch countries
+	batch := &pgx.Batch{}
+	for _, country := range arg.Countries {
+		batch.Queue(
+			`INSERT INTO lobby_countries (lobby_id, country_id, max_slots) VALUES ($1, (SELECT id FROM countries WHERE country_tag = $2), $3)`,
+			lobby.ID, country.CountryTag, country.MaxSlots,
+		)
+	}
+	br := tx.SendBatch(ctx, batch)
+	defer br.Close()
+	for range arg.Countries {
+		if _, err := br.Exec(); err != nil {
+			return Lobby{}, err
+		}
+	}
+	if err := br.Close(); err != nil {
+		return Lobby{}, err
+	}
+
+	return lobby, tx.Commit(ctx)
 }
 
 // JoinLobby adds a player to a lobby or changes the player's country tag inside the lobby
@@ -202,5 +229,3 @@ func (db *Database) GetCountries(ctx context.Context) ([]GetCountriesRow, error)
 	}
 	return countries, nil
 }
-
-

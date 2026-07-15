@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 	testApp = Application{
 		db: db,
 		config: &utils.AppConfig{
-			Debug_cors: true,
+			DebugCors: true,
 		},
 	}
 
@@ -67,7 +67,7 @@ func TestHealthHandler(t *testing.T) {
 	t.Logf("response body: %v", string(rb))
 }
 
-func NewUser(srv *httptest.Server, name string) error {
+func NewTestUser(srv *httptest.Server, name string) error {
 	username := struct {
 		Username string
 	}{
@@ -90,12 +90,16 @@ func NewUser(srv *httptest.Server, name string) error {
 	return nil
 }
 
-func CreateLobby(srv *httptest.Server, args *database.InsertLobbyParams) (int64, error) {
+func CreateTestLobby(srv *httptest.Server, lobby *database.InsertLobbyParams, countries []database.UpsertLobbyCountryParams) (int64, error) {
 	// Golang stores time in nanoseconds, and postgres in microseconds
 	// this truncation is only necessary for testing to test the output
-	args.StartsAt = args.StartsAt.Truncate(time.Microsecond)
+	lobby.StartsAt = lobby.StartsAt.Truncate(time.Microsecond)
 
-	out, err := json.Marshal(args)
+	params := database.CreateLobbyRequest{
+		Lobby:     *lobby,
+		Countries: countries,
+	}
+	out, err := json.Marshal(params)
 	if err != nil {
 		return 0, err
 	}
@@ -124,7 +128,7 @@ func CreateLobby(srv *httptest.Server, args *database.InsertLobbyParams) (int64,
 	return lobbyID, nil
 }
 
-func AddCountry(srv *httptest.Server, args *database.UpsertLobbyCountryParams) error {
+func AddTestCountry(srv *httptest.Server, args *database.UpsertLobbyCountryParams) error {
 	addCountryJSON, err := json.Marshal(args)
 	if err != nil {
 		return err
@@ -148,7 +152,7 @@ func TestCreateUser(t *testing.T) {
 	defer srv.Close()
 
 	username := "PrayDemon"
-	err := NewUser(srv, username)
+	err := NewTestUser(srv, username)
 	if err != nil {
 		t.Fatalf("failed to create user, err: %v", err)
 	}
@@ -172,7 +176,7 @@ func TestCreateUser(t *testing.T) {
 	}
 
 	assert.Equal(t, name, username, "expecting user name from input and db to be the same")
-	assert.Error(t, NewUser(srv, username), "duplicate names should fail")
+	assert.Error(t, NewTestUser(srv, username), "duplicate names should fail")
 }
 
 func TestCreateLobby(t *testing.T) {
@@ -189,7 +193,7 @@ func TestCreateLobby(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = NewUser(srv, "Skrt")
+	err = NewTestUser(srv, "Skrt")
 	if err != nil {
 		t.Fatalf("failed to create user, err: %v", err)
 	}
@@ -204,7 +208,7 @@ func TestCreateLobby(t *testing.T) {
 	}
 
 	// create new lobby
-	lobbyID, err := CreateLobby(srv, &lobbyCreateBody)
+	lobbyID, err := CreateTestLobby(srv, &lobbyCreateBody, nil)
 	if err != nil {
 		t.Fatalf("failed to create lobbs %v", err)
 	}
@@ -237,12 +241,74 @@ func TestCreateLobby(t *testing.T) {
 	assert.Equal(t, lobby.Lobby.StartsAt, lobbyCreateBody.StartsAt, "start date should match")
 }
 
+func TestCreateLobbyWithCountries(t *testing.T) {
+	srv := utils.NewTestServer(t, testApp.routes())
+	defer srv.Close()
+
+	err := NewTestUser(srv, "player3")
+	if err != nil {
+		t.Fatalf("failed to create user, err: %v", err)
+	}
+
+	// Golang stores time in nanoseconds, and postgres in microseconds
+	// this truncation is only necessary for testing
+	lobbyCreateBody := database.InsertLobbyParams{
+		LobbyName:   "Historical PVP",
+		StartsAt:    time.Now().AddDate(0, 0, 7),
+		Gamemode:    database.GamemodeVanilla,
+		Description: "schizo lobby",
+	}
+
+	// create new lobby
+	lobbyID, err := CreateTestLobby(srv, &lobbyCreateBody, []database.UpsertLobbyCountryParams{
+		{
+			CountryTag: "GER",
+			MaxSlots:   1,
+		},
+		{
+			CountryTag: "SOV",
+			MaxSlots:   2,
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to create lobbs %v", err)
+	}
+
+	// fetch newly created lobby
+	res, err := srv.Client().Get(srv.URL + "/api/lobby/" + strconv.FormatInt(lobbyID, 10))
+	if err != nil {
+		t.Fatalf("failed to get a response, err: %v", err)
+	}
+
+	if !assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to query the lobby after creating it") {
+		t.FailNow()
+	}
+
+	var lobby database.LobbyInfo
+
+	resBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("failed to read resp body")
+	}
+
+	err = json.Unmarshal(resBody, &lobby)
+	if err != nil {
+		t.Fatalf("failed to unmarshal id")
+	}
+
+	assert.Equal(t, lobby.Lobby.Description, lobbyCreateBody.Description, "description should match")
+	assert.Equal(t, lobby.Lobby.Gamemode, lobbyCreateBody.Gamemode, "gamemode should match")
+	assert.Equal(t, lobby.Lobby.LobbyName, lobbyCreateBody.LobbyName, "lobby name should match")
+	assert.Equal(t, lobby.Lobby.StartsAt, lobbyCreateBody.StartsAt, "start date should match")
+	assert.Equal(t, 2, len(lobby.Countries), "we added two countries")
+}
+
 func TestJoinLobby(t *testing.T) {
 	srv := utils.NewTestServer(t, testApp.routes())
 	defer srv.Close()
 
 	username := "Inno"
-	err := NewUser(srv, username)
+	err := NewTestUser(srv, username)
 	if err != nil {
 		t.Fatalf("failed to create user, err: %v", err)
 	}
@@ -254,7 +320,7 @@ func TestJoinLobby(t *testing.T) {
 		Description: "schizo lobby",
 	}
 
-	lobbyID, err := CreateLobby(srv, &lobbyCreateBody)
+	lobbyID, err := CreateTestLobby(srv, &lobbyCreateBody, nil)
 	if err != nil {
 		t.Fatalf("failed to create lobbs %v", err)
 	}
@@ -287,14 +353,14 @@ func TestJoinLobby(t *testing.T) {
 		MaxSlots:   1,
 	}
 
-	err = AddCountry(srv, &addCountryParam)
+	err = AddTestCountry(srv, &addCountryParam)
 	if err != nil {
 		t.Fatalf("failed to add GER, err: %v", err)
 	}
 
 	addCountryParam.CountryTag = "ITA"
 
-	err = AddCountry(srv, &addCountryParam)
+	err = AddTestCountry(srv, &addCountryParam)
 	if err != nil {
 		t.Fatalf("failed to add ITA, err: %v", err)
 	}
@@ -398,7 +464,7 @@ func TestUpdateLobby(t *testing.T) {
 	srv := utils.NewTestServer(t, testApp.routes())
 	defer srv.Close()
 
-	err := NewUser(srv, "player1")
+	err := NewTestUser(srv, "player1")
 	if err != nil {
 		t.Fatalf("failed to create user %v", err)
 	}
@@ -410,7 +476,7 @@ func TestUpdateLobby(t *testing.T) {
 		Description: "schizo lobby",
 	}
 
-	lobbyID, err := CreateLobby(srv, &lobbyCreateBody)
+	lobbyID, err := CreateTestLobby(srv, &lobbyCreateBody, nil)
 	if err != nil {
 		t.Fatalf("failed to create lobby err: %v", err)
 	}
@@ -461,7 +527,6 @@ func TestUpdateLobby(t *testing.T) {
 		t.Fatalf("failed to unmarshal body, err: %v", err)
 	}
 
-	
 	if !assert.Equal(t, newLobbyName, lobbyParsed.Lobby.LobbyName, "update should work") {
 		t.Fatalf("update didnt work")
 	}
@@ -471,7 +536,7 @@ func TestDeleteLobby(t *testing.T) {
 	srv := utils.NewTestServer(t, testApp.routes())
 	defer srv.Close()
 
-	err := NewUser(srv, "player2")
+	err := NewTestUser(srv, "player2")
 	if err != nil {
 		t.Fatalf("failed to create user %v", err)
 	}
@@ -483,16 +548,16 @@ func TestDeleteLobby(t *testing.T) {
 		Description: "schizo lobby",
 	}
 
-	lobbyID, err := CreateLobby(srv, &lobbyCreateBody)
+	lobbyID, err := CreateTestLobby(srv, &lobbyCreateBody, nil)
 	if err != nil {
 		t.Fatalf("failed to create lobby err: %v", err)
 	}
 
 	// add GER
-	err = AddCountry(srv, &database.UpsertLobbyCountryParams{
-		LobbyID: lobbyID,
+	err = AddTestCountry(srv, &database.UpsertLobbyCountryParams{
+		LobbyID:    lobbyID,
 		CountryTag: "GER",
-		MaxSlots: 1,
+		MaxSlots:   1,
 	})
 	if err != nil {
 		t.Fatalf("failed to add country err: %v", err)
@@ -517,13 +582,12 @@ func TestDeleteLobby(t *testing.T) {
 		t.Fatalf("failed to unmarshal body, err: %v", err)
 	}
 
-	
 	if !assert.Equal(t, 1, len(lobbyParsed.Countries), "there should be one country") {
 		t.Fatalf("adding country didnt work")
 	}
 
 	// delete GER
-	req, err := http.NewRequest("DELETE", srv.URL + "/api/lobby/" + lobbyIDstr + "/country/GER",  bytes.NewBuffer([]byte{}))
+	req, err := http.NewRequest("DELETE", srv.URL+"/api/lobby/"+lobbyIDstr+"/country/GER", bytes.NewBuffer([]byte{}))
 	if err != nil {
 		t.Fatalf("failed to create request, err: %v", err)
 	}

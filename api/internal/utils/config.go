@@ -9,9 +9,8 @@ import (
 type AppConfig struct {
 	Addr          string `env:"ADDR" env-default:"0.0.0.0"`
 	Port          string `env:"PORT" env-default:"80"`
-	MigrationPath string `env:"MIGRATION_PATH"`
 	DBUrl         string `env:"DATABASE_URL"`
-	Debug_cors    bool   `env:"DEBUG_CORS" env-default:false`
+	DebugCors    bool   `env:"DEBUG_CORS" env-default:"false"`
 }
 
 func LoadConfigEnv() (AppConfig, error) {
@@ -20,7 +19,7 @@ func LoadConfigEnv() (AppConfig, error) {
 	if err != nil {
 		return AppConfig{}, err
 	}
-	slog.Info("config loaded from env variables")
+	slog.Info("config loaded from env variables", "config", cfg)
 	return cfg, nil
 }
 
@@ -30,6 +29,6 @@ func LoadConfigFile(path string) (AppConfig, error) {
 	if err != nil {
 		return AppConfig{}, err
 	}
-	slog.Info("config loaded from file", "path", path)
+	slog.Info("config loaded from file", "path", path, "config", cfg)
 	return cfg, nil
 }

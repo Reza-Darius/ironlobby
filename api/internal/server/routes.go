@@ -12,7 +12,7 @@ func (app *Application) routes() *chi.Mux {
 	r.Use(middleware.Logger)
 	r.Use(secureHeaders)
 
-	if app.config.Debug_cors {
+	if app.config.DebugCors {
 		r.Use(CorsDebug)
 	}
 

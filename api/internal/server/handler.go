@@ -58,7 +58,7 @@ func (app *Application) newUser(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	WriteUserCookie(w, id, app.config.Debug_cors)
+	WriteUserCookie(w, id, app.config.DebugCors)
 
 	slog.Info("new user registered", "username", username, "id", id)
 }
@@ -113,7 +113,7 @@ func (app *Application) getLobby(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *Application) newLobby(w http.ResponseWriter, r *http.Request) {
-	lobbyParams, err := decode[database.InsertLobbyParams](r)
+	lobbyParams, err := decode[database.CreateLobbyRequest](r)
 	if err != nil {
 		slog.Error("create lobby request body decode error", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -121,7 +121,7 @@ func (app *Application) newLobby(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// we get the hostID from the cookie
-	lobbyParams.HostPlayer = GetPlayerID(r)
+	lobbyParams.Lobby.HostPlayer = GetPlayerID(r)
 
 	lobby, err := app.db.CreateLobby(r.Context(), lobbyParams)
 	if err != nil {

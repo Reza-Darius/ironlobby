@@ -17,6 +17,7 @@ type Application struct {
 func Run(config *utils.AppConfig, db *database.Database) error {
 	app := Application {
 		db: db,
+		config: config,
 	}
 
 	a := config.Addr + ":" + config.Port

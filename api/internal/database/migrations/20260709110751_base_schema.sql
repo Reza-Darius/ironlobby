@@ -67,9 +67,7 @@ CREATE TABLE IF NOT EXISTS lobby (
     starts_at TIMESTAMPTZ NOT NULL,
     gamemode GAMEMODE NOT NULL,
     ingame_id CHAR(17),
-    description VARCHAR(1000) NOT NULL,
-
-    CHECK (player_count BETWEEN 1 AND 32)
+    description VARCHAR(1000) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS lobby_countries (

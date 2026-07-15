@@ -32,6 +32,9 @@ func TestMain(m *testing.M) {
 
 	testApp = Application{
 		db: db,
+		config: &utils.AppConfig{
+			Debug_cors: true,
+		},
 	}
 
 	code := m.Run()
@@ -515,14 +518,37 @@ func TestDeleteLobby(t *testing.T) {
 	}
 
 	
-	if !assert.Equal(t, 1, len(lobbyParsed.Countries), "delete should work") {
-		t.Fatalf("deletet didnt work")
+	if !assert.Equal(t, 1, len(lobbyParsed.Countries), "there should be one country") {
+		t.Fatalf("adding country didnt work")
 	}
 
 	// delete GER
 	req, err := http.NewRequest("DELETE", srv.URL + "/api/lobby/" + lobbyIDstr + "/country/GER",  bytes.NewBuffer([]byte{}))
 	if err != nil {
-		t.Fatalf("failed to createt request, err: %v", err)
+		t.Fatalf("failed to create request, err: %v", err)
 	}
 	_, err = srv.Client().Do(req)
+	if err != nil {
+		t.Fatalf("failed to send request, err: %v", err)
+	}
+
+	// check lobby
+	lobby, err = srv.Client().Get(srv.URL + "/api/lobby/" + lobbyIDstr)
+	if err != nil {
+		t.Fatalf("failed to get a response, err: %v", err)
+	}
+
+	body, err = io.ReadAll(lobby.Body)
+	if err != nil {
+		t.Fatalf("failed to read body, err: %v", err)
+	}
+
+	err = json.Unmarshal(body, &lobbyParsed)
+	if err != nil {
+		t.Fatalf("failed to unmarshal body, err: %v", err)
+	}
+
+	if !assert.Equal(t, 0, len(lobbyParsed.Countries), "there should be no countries remaining") {
+		t.Fatalf("delete didnt work")
+	}
 }

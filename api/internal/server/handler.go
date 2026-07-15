@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
@@ -271,23 +272,27 @@ func (app *Application) deleteLobbyCountry(w http.ResponseWriter, r *http.Reques
 	ctx := r.Context();
 	_, lobbyID, err := checkHost(app.db, w, r)
 	if err != nil {
+		slog.Error("user is not host")
 		return
 	}
 
-	// parse body
-	arg, err := decode[database.DeleteLobbyCountryParams](r)
-	if err != nil {
-		slog.Error("add lobby country request body decode error", "err", err)
-		w.WriteHeader(http.StatusInternalServerError)
+	tag := chi.URLParam(r, "country_tag")
+	tag = strings.ToUpper(tag)
+	if tag == "" {
+		slog.Error("invalid country tag", "provided", tag)
+		http.Error(w, "invalid country tag", http.StatusBadRequest)
 		return
 	}
 
-	arg.LobbyID = lobbyID
+	err = app.db.DeleteLobbyCountry(ctx, database.DeleteLobbyCountryParams{
+		LobbyID: lobbyID,
+		CountryTag: tag,
+	})
 
-	err = app.db.DeleteLobbyCountry(ctx, arg)
 	if err != nil {
 		slog.Error("error when deleting lobby country", "err", err)
 		http.Error(w, "unable to fulfill write call", http.StatusInternalServerError)
 		return
 	}
+	slog.Info("deleted country from lobby", "countr", tag, "lobby_id", lobbyID)
 }

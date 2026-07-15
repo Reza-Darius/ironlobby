@@ -324,4 +324,29 @@ func TestJoinLobby(t *testing.T) {
 	if !assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to join as GER after adding it") {
 		t.FailNow()
 	}
+
+	lobby, err := srv.Client().Get(srv.URL + "/api/lobby/"+strconv.Itoa(int(lobbyID)))
+	defer lobby.Body.Close()
+	if err != nil {
+		t.Fatalf("failed to get a response, err: %v", err)
+	}
+
+	body, err := io.ReadAll(lobby.Body)
+
+	var lobbyParsed database.LobbyInfo
+	err = json.Unmarshal(body, &lobbyParsed)
+	if err != nil {
+		t.Fatalf("failed to unmarshal body, err: %v", err)
+	}
+
+	assert.Equal(t, 1, len(lobbyParsed.Countries))
+	assert.Equal(t, "GER", lobbyParsed.Countries[0].CountryTag)
+	assert.Equal(t, int16(1), lobbyParsed.Countries[0].MaxSlots)
+
+	assert.Equal(t, 1, len(lobbyParsed.Players))
+	assert.Equal(t, "GER", lobbyParsed.Players[0].CountryTag)
+	assert.Equal(t, username.Username, lobbyParsed.Players[0].PlayerName)
+	assert.Equal(t, lobbyID, lobbyParsed.Players[0].LobbyID)
+
+	t.Logf("lobby: %s", body)
 }

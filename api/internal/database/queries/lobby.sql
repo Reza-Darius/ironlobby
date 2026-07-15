@@ -108,3 +108,14 @@ RETURNING *;
 -- name: UnassignPlayer :exec
 DELETE FROM player_lobby
 WHERE lobby_id = $1 AND player_id = $2;
+
+-- name: UpdateLobby :one
+UPDATE lobby
+SET
+    lobby_name = COALESCE(sqlc.narg(lobby_name), lobby_name),
+    description = COALESCE(sqlc.narg(description), description),
+    starts_at = COALESCE(sqlc.narg(starts_at), starts_at),
+    ingame_id = COALESCE(sqlc.narg(ingame_id), ingame_id)
+WHERE id = sqlc.arg(lobby_id)
+RETURNING *;
+

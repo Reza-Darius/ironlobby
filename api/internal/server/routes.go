@@ -22,7 +22,7 @@ func (app *Application) routes() *chi.Mux {
 		r.Group(func(r chi.Router) {
 			r.Use(app.AuthSession)
 			r.Post("/lobby", app.newLobby)
-			// r.Patch("/lobby/{lobby_id}", app.editLobby)
+			r.Patch("/lobby/{lobby_id}", app.updateLobby)
 			r.Post("/lobby/{lobby_id}/country", app.addLobbyCountry)
 			// r.Delete("lobby/{lobby_idy}/country/{country_tag}", app.deleteLobbyCountry)
 			// r.Put("lobby/{lobby_id}/{country_tag", app.editLobbyCountry)

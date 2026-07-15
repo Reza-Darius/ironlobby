@@ -187,9 +187,46 @@ func (app *Application) joinLobby(w http.ResponseWriter, r *http.Request) {
 	slog.Info("player joined lobby", "player", joinParams.PlayerID.String(), "lobby", joinParams.LobbyID, "tag", joinParams.CountryTag)
 }
 
-func (app *Application) editLobby(w http.ResponseWriter, r *http.Request) {
+func (app *Application) updateLobby(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context();
+
+	playerID, lobbyID, err := getIDs(r)
+	if err != nil {
+		slog.Error("couldnt retrieve IDs", "err", err)
+		http.Error(w, "couldnt retrieve ids", http.StatusBadRequest)
+		return
+	}
+
 	// check host privileges
-	// parse lobby settings
+	isHost, err := app.db.PlayerIsHost(ctx, playerID, lobbyID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		slog.Error("error when checking host privileges", "err", err)
+		return
+	}
+
+	if !isHost {
+		http.Error(w, "cant edit lobby without host privileges", http.StatusUnauthorized)
+		return
+	}
+
+	updateParams, err := decode[database.UpdateLobbyParams](r)
+	if err != nil {
+		slog.Error("update lobby request body decode error", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	updateParams.LobbyID = lobbyID
+
+	err = app.db.UpdateLobby(ctx, updateParams)
+	if err != nil {
+		slog.Error("failed to run update lobby on db", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	slog.Info("updated lobby", "lobby", lobbyID, "lobby_settings", updateParams)
 }
 func (app *Application) addLobbyCountry(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context();

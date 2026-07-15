@@ -21,17 +21,17 @@ var (
 	ErrCountryDoesntExist    = errors.New("provided country tag doesnt exist")
 )
 
-func (db Database) OpenLobbies(ctx context.Context) (int64, error) {
+func (db *Database) OpenLobbies(ctx context.Context) (int64, error) {
 	q := New(db.pool)
 	return q.OpenLobbies(ctx)
 }
 
-func (db Database) GetUser(ctx context.Context, id uuid.UUID) (string, error) {
+func (db *Database) GetUser(ctx context.Context, id uuid.UUID) (string, error) {
 	q := New(db.pool)
 	return q.GetPlayer(ctx, id)
 }
 
-func (db Database) NewUser(ctx context.Context, playerName string) (uuid.UUID, error) {
+func (db *Database) NewUser(ctx context.Context, playerName string) (uuid.UUID, error) {
 	q := New(db.pool)
 	player, err := q.InsertNewPlayer(ctx, playerName)
 	if err != nil {
@@ -48,7 +48,7 @@ func (db Database) NewUser(ctx context.Context, playerName string) (uuid.UUID, e
 	return player.ID, err
 }
 
-func (db Database) CreateLobby(ctx context.Context, arg InsertLobbyParams) (Lobby, error) {
+func (db *Database) CreateLobby(ctx context.Context, arg InsertLobbyParams) (Lobby, error) {
 	q := New(db.pool)
 	lobby, err := q.InsertLobby(ctx, arg)
 	if err != nil {
@@ -66,7 +66,7 @@ func (db Database) CreateLobby(ctx context.Context, arg InsertLobbyParams) (Lobb
 }
 
 // JoinLobby adds a player to a lobby or changes the player's country tag inside the lobby
-func (db Database) JoinLobby(ctx context.Context, arg UpsertPlayerLobbyParams) error {
+func (db *Database) JoinLobby(ctx context.Context, arg UpsertPlayerLobbyParams) error {
 	tx, err := db.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -122,7 +122,7 @@ type LobbyInfo struct {
 	Players   []GetLobbyPlayersRow   `json:"players"`
 }
 
-func (db Database) GetLobby(ctx context.Context, lobbyID int64) (LobbyInfo, error) {
+func (db *Database) GetLobby(ctx context.Context, lobbyID int64) (LobbyInfo, error) {
 	q := New(db.pool)
 	lobby, err := q.GetLobbyInfo(ctx, lobbyID)
 	if err != nil {
@@ -143,7 +143,7 @@ func (db Database) GetLobby(ctx context.Context, lobbyID int64) (LobbyInfo, erro
 	}, nil
 }
 
-func (db Database) PlayerIsHost(ctx context.Context, playerID uuid.UUID, lobbyID int64) (bool, error) {
+func (db *Database) PlayerIsHost(ctx context.Context, playerID uuid.UUID, lobbyID int64) (bool, error) {
 	q := New(db.pool)
 	_, err := q.GetLobbyFromHostID(ctx, GetLobbyFromHostIDParams{
 		ID:         lobbyID,
@@ -159,13 +159,22 @@ func (db Database) PlayerIsHost(ctx context.Context, playerID uuid.UUID, lobbyID
 }
 
 // AddLobbyCountry adds a country to the lobby, or if the tag is alreaddy registered, updates the max slots
-func (db Database) AddLobbyCountry(ctx context.Context, arg UpsertLobbyCountryParams) error {
+func (db *Database) AddLobbyCountry(ctx context.Context, arg UpsertLobbyCountryParams) error {
 	q := New(db.pool)
 	_, err := q.UpsertLobbyCountry(ctx, arg)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return ErrCountryDoesntExist
 		}
+		return err
+	}
+	return nil
+}
+
+func (db *Database) UpdateLobby(ctx context.Context, arg UpdateLobbyParams) error {
+	q := New(db.pool)
+	_, err := q.UpdateLobby(ctx, arg)
+	if err != nil {
 		return err
 	}
 	return nil

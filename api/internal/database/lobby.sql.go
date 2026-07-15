@@ -299,6 +299,47 @@ func (q *Queries) UpdateGameId(ctx context.Context, arg UpdateGameIdParams) erro
 	return err
 }
 
+const updateLobby = `-- name: UpdateLobby :one
+UPDATE lobby
+SET
+    lobby_name = COALESCE($1, lobby_name),
+    description = COALESCE($2, description),
+    starts_at = COALESCE($3, starts_at),
+    ingame_id = COALESCE($4, ingame_id)
+WHERE id = $5
+RETURNING id, host_player, lobby_name, starts_at, player_count, gamemode, ingame_id, description
+`
+
+type UpdateLobbyParams struct {
+	LobbyName   pgtype.Text        `json:"lobby_name"`
+	Description pgtype.Text        `json:"description"`
+	StartsAt    pgtype.Timestamptz `json:"starts_at"`
+	IngameID    pgtype.Text        `json:"ingame_id"`
+	LobbyID     int64              `json:"lobby_id"`
+}
+
+func (q *Queries) UpdateLobby(ctx context.Context, arg UpdateLobbyParams) (Lobby, error) {
+	row := q.db.QueryRow(ctx, updateLobby,
+		arg.LobbyName,
+		arg.Description,
+		arg.StartsAt,
+		arg.IngameID,
+		arg.LobbyID,
+	)
+	var i Lobby
+	err := row.Scan(
+		&i.ID,
+		&i.HostPlayer,
+		&i.LobbyName,
+		&i.StartsAt,
+		&i.PlayerCount,
+		&i.Gamemode,
+		&i.IngameID,
+		&i.Description,
+	)
+	return i, err
+}
+
 const upsertLobbyCountry = `-- name: UpsertLobbyCountry :one
 INSERT INTO lobby_countries (lobby_id, country_id, max_slots)
 SELECT

@@ -71,7 +71,7 @@ func TestInsert(t *testing.T) {
 	}
 	t.Logf("lobby created: %v", lobby)
 
-	err = testDB.AddLobbyCountry(ctx, AddLobbyCountryParams{
+	_, err = testDB.UpsertLobbyCountry(ctx, UpsertLobbyCountryParams{
 		LobbyID:    lobby.ID,
 		CountryTag: "GER",
 		MaxSlots:   2,
@@ -79,7 +79,7 @@ func TestInsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to add lobby country GER %v", err)
 	}
-	err = testDB.AddLobbyCountry(ctx, AddLobbyCountryParams{
+	_, err = testDB.UpsertLobbyCountry(ctx, UpsertLobbyCountryParams{
 		LobbyID:    lobby.ID,
 		CountryTag: "SOV",
 		MaxSlots:   1,
@@ -87,7 +87,7 @@ func TestInsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to add lobby country SOV %v", err)
 	}
-	err = testDB.AddLobbyCountry(ctx, AddLobbyCountryParams{
+	_, err = testDB.UpsertLobbyCountry(ctx, UpsertLobbyCountryParams{
 		LobbyID:    lobby.ID,
 		CountryTag: "JAP",
 		MaxSlots:   1,

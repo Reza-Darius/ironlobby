@@ -75,7 +75,7 @@ type Lobby struct {
 type LobbyCountry struct {
 	LobbyID   int64 `json:"lobby_id"`
 	CountryID int16 `json:"country_id"`
-	MaxSlots  int32 `json:"max_slots"`
+	MaxSlots  int16 `json:"max_slots"`
 }
 
 type Player struct {

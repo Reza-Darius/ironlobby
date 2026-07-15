@@ -18,6 +18,7 @@ var (
 	ErrNationSlotsFull       = errors.New("the requested nation's slots are full")
 	ErrNationNotAvail        = errors.New("the requested nation is not available")
 	ErrPlayerAlreadyAssigned = errors.New("player is already assigned to Nation")
+	ErrCountryDoesntExist    = errors.New("provided country tag doesnt exist")
 )
 
 func (db Database) OpenLobbies(ctx context.Context) (int64, error) {
@@ -140,4 +141,36 @@ func (db Database) GetLobby(ctx context.Context, lobbyID int64) (LobbyInfo, erro
 		Countries: lobbyCountries,
 		Players:   lobbyPlayer,
 	}, nil
+}
+
+func (db Database) PlayerIsHost(ctx context.Context, playerID uuid.UUID, lobbyID int64) (bool, error) {
+	q := New(db.pool)
+	_, err := q.GetLobbyFromHostID(ctx, GetLobbyFromHostIDParams{
+		ID:         lobbyID,
+		HostPlayer: playerID,
+	})
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+// AddLobbyCountries adds a country to the lobby, or if the tag is alreaddy registered, updates the max slots
+func (db Database) AddLobbyCountries(ctx context.Context, lobbyID int64, countryTag string, maxSlots int16) error {
+	q := New(db.pool)
+	_, err := q.UpsertLobbyCountry(ctx, UpsertLobbyCountryParams{
+		LobbyID:    lobbyID,
+		CountryTag: countryTag,
+		MaxSlots:   maxSlots,
+	})
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return ErrCountryDoesntExist
+		}
+		return err
+	}
+	return nil
 }

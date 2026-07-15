@@ -120,7 +120,9 @@ func TestCreateLobby(t *testing.T) {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
 
-	assert.Equal(t, http.StatusUnauthorized, res.StatusCode, "we expect unauthorized")
+	if !assert.Equal(t, http.StatusUnauthorized, res.StatusCode, "we expect unauthorized") {
+		t.FailNow()
+	}
 
 	username := struct {
 		Username string
@@ -138,7 +140,9 @@ func TestCreateLobby(t *testing.T) {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
 
-	assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to create a user")
+	if !assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to create a user") {
+		t.FailNow()
+	}
 
 	// Golang stores time in nanoseconds, and postgres in microseconds
 	// this truncation is only necessary for testing
@@ -162,7 +166,9 @@ func TestCreateLobby(t *testing.T) {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
 
-	assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to create a lobby")
+	if !assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to create a lobby") {
+		t.FailNow()
+	}
 
 	var lobbyID int64
 	resBody, err := io.ReadAll(res.Body)
@@ -181,7 +187,9 @@ func TestCreateLobby(t *testing.T) {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
 
-	assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to query the lobby after creating it")
+	if !assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to query the lobby after creating it") {
+		t.FailNow()
+	}
 
 	var lobby database.LobbyInfo
 
@@ -210,18 +218,20 @@ func TestJoinLobby(t *testing.T) {
 	}{
 		Username: "Inno",
 	}
-	out, err := json.Marshal(username)
+	joinLobbyJSON, err := json.Marshal(username)
 	if err != nil {
 		t.Fatalf("failed to marshal username")
 	}
 
 	// register new user
-	res, err := srv.Client().Post(srv.URL+"/api/user", "application/json", bytes.NewBuffer(out))
+	res, err := srv.Client().Post(srv.URL+"/api/user", "application/json", bytes.NewBuffer(joinLobbyJSON))
 	if err != nil {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
 
-	assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to create a user")
+	if !assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to create a user") {
+		t.FailNow()
+	}
 
 	// Golang stores time in nanoseconds, and postgres in microseconds
 	// this truncation is only necessary for testing
@@ -233,19 +243,21 @@ func TestJoinLobby(t *testing.T) {
 		Description: "schizo lobby",
 	}
 
-	out, err = json.Marshal(lobbyCreateBody)
+	joinLobbyJSON, err = json.Marshal(lobbyCreateBody)
 	if err != nil {
 		t.Fatalf("failed to marshal username")
 	}
 
 	// create new lobby
-	res, err = srv.Client().Post(srv.URL+"/api/lobby", "application/json", bytes.NewBuffer(out))
+	res, err = srv.Client().Post(srv.URL+"/api/lobby", "application/json", bytes.NewBuffer(joinLobbyJSON))
 	defer res.Body.Close()
 	if err != nil {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
 
-	assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to create a lobby")
+	if !assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to create a lobby") {
+		t.FailNow()
+	}
 
 	var lobbyID int64
 	resBody, err := io.ReadAll(res.Body)
@@ -258,24 +270,58 @@ func TestJoinLobby(t *testing.T) {
 		t.Fatalf("failed to unmarshal id")
 	}
 
-	// join lobby
+	// join lobby fail
 	joinParam := database.UpsertPlayerLobbyParams{
 		CountryTag: "GER",
 	}
 
-	out, err = json.Marshal(joinParam)
+	joinLobbyJSON, err = json.Marshal(joinParam)
 	if err != nil {
 		t.Fatalf("failed to marshal username")
 	}
 
 	url := srv.URL + "/api/lobby/" + strconv.Itoa(int(lobbyID)) + "/player"
-	res, err = srv.Client().Post(url, "application/json", bytes.NewBuffer(out))
+	res, err = srv.Client().Post(url, "application/json", bytes.NewBuffer(joinLobbyJSON))
 	defer res.Body.Close()
 	if err != nil {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
 
-	assert.Equal(t, http.StatusBadRequest, res.StatusCode, "the country wasnt added yet")
+	if !assert.Equal(t, http.StatusBadRequest, res.StatusCode, "the country wasnt added yet") {
+		t.FailNow()
+	}
 
 	// add country
+	addCountryParam := database.UpsertLobbyCountryParams{
+		CountryTag: "GER",
+		MaxSlots: 1,
+	}
+
+	addCountryJSON, err := json.Marshal(addCountryParam)
+	if err != nil {
+		t.Fatalf("failed to marshal username")
+	}
+
+	url = srv.URL + "/api/lobby/" + strconv.Itoa(int(lobbyID)) + "/country"
+	res, err = srv.Client().Post(url, "application/json", bytes.NewBuffer(addCountryJSON))
+	defer res.Body.Close()
+	if err != nil {
+		t.Fatalf("failed to get a response, err: %v", err)
+	}
+
+	if !assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to add a country") {
+		t.FailNow()
+	}
+
+	// join lobby
+	url = srv.URL + "/api/lobby/" + strconv.Itoa(int(lobbyID)) + "/player"
+	res, err = srv.Client().Post(url, "application/json", bytes.NewBuffer(joinLobbyJSON))
+	defer res.Body.Close()
+	if err != nil {
+		t.Fatalf("failed to get a response, err: %v", err)
+	}
+
+	if !assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to join as GER after adding it") {
+		t.FailNow()
+	}
 }

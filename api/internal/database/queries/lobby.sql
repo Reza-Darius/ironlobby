@@ -48,21 +48,26 @@ RETURNING player_count;
 UPDATE lobby SET player_count = player_count - 1
 WHERE id = $1 RETURNING player_count;
 
--- name: AddLobbyCountry :exec
+-- name: UpsertLobbyCountry :one
 INSERT INTO lobby_countries (lobby_id, country_id, max_slots)
-VALUES (
+SELECT
     $1,
-    (
-        SELECT id FROM countries
-        WHERE country_tag = $2
-    ),
+    id,
     $3
-);
+FROM countries
+WHERE country_tag = $2
+ON CONFLICT (lobby_id, country_id)
+DO UPDATE SET max_slots = excluded.max_slots
+RETURNING *;
 
 
 -- name: OpenLobbies :one
 SELECT COUNT(*) FROM lobby
 WHERE starts_at <= NOW();
+
+-- name: GetLobbyFromHostID :one
+SELECT l.id FROM lobby AS l
+WHERE l.host_player = $1 AND l.id = $2;
 
 -- name: SearchPlayerInLobby :one
 SELECT country_id FROM player_lobby

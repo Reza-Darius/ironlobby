@@ -13,29 +13,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const addLobbyCountry = `-- name: AddLobbyCountry :exec
-INSERT INTO lobby_countries (lobby_id, country_id, max_slots)
-VALUES (
-    $1,
-    (
-        SELECT id FROM countries
-        WHERE country_tag = $2
-    ),
-    $3
-)
-`
-
-type AddLobbyCountryParams struct {
-	LobbyID    int64  `json:"lobby_id"`
-	CountryTag string `json:"country_tag"`
-	MaxSlots   int32  `json:"max_slots"`
-}
-
-func (q *Queries) AddLobbyCountry(ctx context.Context, arg AddLobbyCountryParams) error {
-	_, err := q.db.Exec(ctx, addLobbyCountry, arg.LobbyID, arg.CountryTag, arg.MaxSlots)
-	return err
-}
-
 const countCountryOccupants = `-- name: CountCountryOccupants :one
 SELECT COUNT(*) FROM player_lobby
 WHERE
@@ -83,7 +60,7 @@ WHERE lobby_countries.lobby_id = $1
 
 type GetLobbyCountriesRow struct {
 	CountryTag string `json:"country_tag"`
-	MaxSlots   int32  `json:"max_slots"`
+	MaxSlots   int16  `json:"max_slots"`
 }
 
 func (q *Queries) GetLobbyCountries(ctx context.Context, lobbyID int64) ([]GetLobbyCountriesRow, error) {
@@ -104,6 +81,23 @@ func (q *Queries) GetLobbyCountries(ctx context.Context, lobbyID int64) ([]GetLo
 		return nil, err
 	}
 	return items, nil
+}
+
+const getLobbyFromHostID = `-- name: GetLobbyFromHostID :one
+SELECT l.id FROM lobby AS l
+WHERE l.host_player = $1 AND l.id = $2
+`
+
+type GetLobbyFromHostIDParams struct {
+	HostPlayer uuid.UUID `json:"host_player"`
+	ID         int64     `json:"id"`
+}
+
+func (q *Queries) GetLobbyFromHostID(ctx context.Context, arg GetLobbyFromHostIDParams) (int64, error) {
+	row := q.db.QueryRow(ctx, getLobbyFromHostID, arg.HostPlayer, arg.ID)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
 }
 
 const getLobbyInfo = `-- name: GetLobbyInfo :one
@@ -224,14 +218,14 @@ func (q *Queries) InsertLobby(ctx context.Context, arg InsertLobbyParams) (Lobby
 }
 
 const lockLobbyCountrySlot = `-- name: LockLobbyCountrySlot :one
-SELECT max_slots
-FROM lobby_countries
+SELECT lc.max_slots
+FROM lobby_countries AS lc
 WHERE
     lobby_id = $1 AND country_id = (
         SELECT c.id FROM countries AS c
         WHERE c.country_tag = $2
     )
-FOR UPDATE
+FOR UPDATE OF lc
 `
 
 type LockLobbyCountrySlotParams struct {
@@ -239,9 +233,9 @@ type LockLobbyCountrySlotParams struct {
 	CountryTag string `json:"country_tag"`
 }
 
-func (q *Queries) LockLobbyCountrySlot(ctx context.Context, arg LockLobbyCountrySlotParams) (int32, error) {
+func (q *Queries) LockLobbyCountrySlot(ctx context.Context, arg LockLobbyCountrySlotParams) (int16, error) {
 	row := q.db.QueryRow(ctx, lockLobbyCountrySlot, arg.LobbyID, arg.CountryTag)
-	var max_slots int32
+	var max_slots int16
 	err := row.Scan(&max_slots)
 	return max_slots, err
 }
@@ -303,6 +297,32 @@ type UpdateGameIdParams struct {
 func (q *Queries) UpdateGameId(ctx context.Context, arg UpdateGameIdParams) error {
 	_, err := q.db.Exec(ctx, updateGameId, arg.IngameID, arg.ID)
 	return err
+}
+
+const upsertLobbyCountry = `-- name: UpsertLobbyCountry :one
+INSERT INTO lobby_countries (lobby_id, country_id, max_slots)
+SELECT
+    $1,
+    id,
+    $3
+FROM countries
+WHERE country_tag = $2
+ON CONFLICT (lobby_id, country_id)
+DO UPDATE SET max_slots = excluded.max_slots
+RETURNING lobby_id, country_id, max_slots
+`
+
+type UpsertLobbyCountryParams struct {
+	LobbyID    int64  `json:"lobby_id"`
+	CountryTag string `json:"country_tag"`
+	MaxSlots   int16  `json:"max_slots"`
+}
+
+func (q *Queries) UpsertLobbyCountry(ctx context.Context, arg UpsertLobbyCountryParams) (LobbyCountry, error) {
+	row := q.db.QueryRow(ctx, upsertLobbyCountry, arg.LobbyID, arg.CountryTag, arg.MaxSlots)
+	var i LobbyCountry
+	err := row.Scan(&i.LobbyID, &i.CountryID, &i.MaxSlots)
+	return i, err
 }
 
 const upsertPlayerLobby = `-- name: UpsertPlayerLobby :one

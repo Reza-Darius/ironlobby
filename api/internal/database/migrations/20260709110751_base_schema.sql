@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS lobby (
 CREATE TABLE IF NOT EXISTS lobby_countries (
     lobby_id BIGINT REFERENCES lobby (id) ON DELETE CASCADE,
     country_id SMALLINT REFERENCES countries (id) ON DELETE CASCADE,
-    max_slots INT NOT NULL DEFAULT 1,
+    max_slots SMALLINT NOT NULL DEFAULT 1,
 
     CHECK (max_slots <= 32),
     PRIMARY KEY (lobby_id, country_id)

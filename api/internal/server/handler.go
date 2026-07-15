@@ -181,6 +181,7 @@ func (app *Application) joinLobby(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "internal server error", http.StatusInternalServerError)
 			}
 		}
+		return
 	}
 
 	slog.Info("player joined lobby", "player", joinParams.PlayerID.String(), "lobby", joinParams.LobbyID, "tag", joinParams.CountryTag)
@@ -189,5 +190,54 @@ func (app *Application) joinLobby(w http.ResponseWriter, r *http.Request) {
 func (app *Application) editLobby(w http.ResponseWriter, r *http.Request) {
 	// check host privileges
 	// parse lobby settings
-	// parse country settings
+}
+func (app *Application) addLobbyCountry(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context();
+
+	playerID, lobbyID, err := getIDs(r)
+	if err != nil {
+		slog.Error("couldnt retrieve IDs", "err", err)
+		http.Error(w, "couldnt retrieve ids", http.StatusBadRequest)
+		return
+	}
+
+	// check host privileges
+	isHost, err := app.db.PlayerIsHost(ctx, playerID, lobbyID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		slog.Error("error when checking host privileges", "err", err)
+		return
+	}
+
+	if !isHost {
+		http.Error(w, "cant add country without host privileges", http.StatusUnauthorized)
+		return
+	}
+
+	// parse body
+	addLobbyCountryParams, err := decode[database.UpsertLobbyCountryParams](r)
+	if err != nil {
+		slog.Error("add lobby country request body decode error", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = app.db.AddLobbyCountries(ctx, lobbyID, addLobbyCountryParams.CountryTag, addLobbyCountryParams.MaxSlots)
+	if err != nil {
+		switch err {
+		case database.ErrCountryDoesntExist:
+			{
+				http.Error(w, "requested country doesnt exist", http.StatusBadRequest)
+				return
+			}
+
+		default:
+			{
+				slog.Error("error when adding lobby to country", "err", err)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+			}
+		}
+		return
+	}
+	slog.Info("added country to lobby", "lobby", lobbyID, "country", addLobbyCountryParams.CountryTag, "max_slots", addLobbyCountryParams.MaxSlots)
 }

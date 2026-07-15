@@ -2,9 +2,12 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
 
@@ -42,4 +45,22 @@ func secureHeaders(next http.Handler) http.Handler {
 		w.Header().Set("X-XSS-Protection", "0")
 		next.ServeHTTP(w, r)
 	})
+}
+
+// errors if it cant retrieve both lobby id and player id
+func getIDs(r *http.Request) (uuid.UUID, int64, error) {
+	// player ID from cookie
+	playerID := GetPlayerID(r)
+
+	// lobby ID from url path
+	lID := chi.URLParam(r, "lobby_id")
+	if lID == "" {
+		return uuid.UUID{}, 0, errors.New("empty lobby ID")
+	}
+
+	lobbyID, err := strconv.ParseInt(lID, 10, 64)
+	if err != nil {
+		return uuid.UUID{}, 0, err
+	}
+	return playerID, lobbyID, nil
 }

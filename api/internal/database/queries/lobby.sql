@@ -32,22 +32,6 @@ INSERT INTO lobby (
 VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
--- name: UpdateGameId :exec
-UPDATE lobby SET ingame_id = $1
-WHERE id = $2;
-
--- name: IncrementPlayerCount :one
-UPDATE lobby
-SET player_count = player_count + 1
-WHERE
-    id = $1
-    AND player_count <= 32
-RETURNING player_count;
-
--- name: DecrementPlayerCount :one
-UPDATE lobby SET player_count = player_count - 1
-WHERE id = $1 RETURNING player_count;
-
 -- name: UpsertLobbyCountry :one
 INSERT INTO lobby_countries (lobby_id, country_id, max_slots)
 SELECT
@@ -59,7 +43,6 @@ WHERE country_tag = $2
 ON CONFLICT (lobby_id, country_id)
 DO UPDATE SET max_slots = excluded.max_slots
 RETURNING *;
-
 
 -- name: OpenLobbies :one
 SELECT COUNT(*) FROM lobby
@@ -101,6 +84,7 @@ SELECT
     id
 FROM countries
 WHERE country_tag = $3
+-- when the player is already in the lobby, we just update the tag
 ON CONFLICT (lobby_id, player_id)
 DO UPDATE SET country_id = excluded.country_id
 RETURNING *;
@@ -112,6 +96,8 @@ WHERE lobby_id = $1 AND player_id = $2;
 -- name: UpdateLobby :one
 UPDATE lobby
 SET
+    -- we use COALESCE takes the first, non-null value from left to right
+    -- sqlc.nargs() specifies nullable arguments
     lobby_name = COALESCE(sqlc.narg(lobby_name), lobby_name),
     description = COALESCE(sqlc.narg(description), description),
     starts_at = COALESCE(sqlc.narg(starts_at), starts_at),

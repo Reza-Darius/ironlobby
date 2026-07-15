@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -82,7 +81,7 @@ func NewUser(srv *httptest.Server, name string) error {
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return errors.New(fmt.Sprintf("failed to create user, status: %v", res.StatusCode))
+		return fmt.Errorf("failed to create user, status: %v", res.StatusCode)
 	}
 
 	return nil
@@ -105,7 +104,7 @@ func CreateLobby(srv *httptest.Server, args *database.InsertLobbyParams) (int64,
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return 0, errors.New(fmt.Sprintf("failed to create lobby, status: %v", res.StatusCode))
+		return 0, fmt.Errorf("failed to create lobby, status: %v", res.StatusCode)
 	}
 
 	var lobbyID int64
@@ -136,7 +135,7 @@ func AddCountry(srv *httptest.Server, args *database.UpsertLobbyCountryParams) e
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return errors.New(fmt.Sprintf("couldnt add country, code: %v", res.StatusCode))
+		return fmt.Errorf("couldnt add country, code: %v", res.StatusCode)
 	}
 	return nil
 }
@@ -317,6 +316,9 @@ func TestJoinLobby(t *testing.T) {
 	}
 
 	body, err := io.ReadAll(lobby.Body)
+	if err != nil {
+		t.Fatalf("failed to read body, err: %v", err)
+	}
 
 	var lobbyParsed database.LobbyInfo
 	err = json.Unmarshal(body, &lobbyParsed)

@@ -376,7 +376,7 @@ FROM countries
 WHERE country_tag = $3
 ON CONFLICT (lobby_id, player_id)
 DO UPDATE SET country_id = excluded.country_id
-RETURNING player_id, lobby_id, country_id, joined_at
+RETURNING player_id, lobby_id, country_id, note, joined_at
 `
 
 type UpsertPlayerLobbyParams struct {
@@ -392,6 +392,7 @@ func (q *Queries) UpsertPlayerLobby(ctx context.Context, arg UpsertPlayerLobbyPa
 		&i.PlayerID,
 		&i.LobbyID,
 		&i.CountryID,
+		&i.Note,
 		&i.JoinedAt,
 	)
 	return i, err

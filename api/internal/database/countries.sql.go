@@ -9,6 +9,38 @@ import (
 	"context"
 )
 
+const getCountries = `-- name: GetCountries :many
+SELECT
+    country_tag,
+    country_name
+FROM countries
+`
+
+type GetCountriesRow struct {
+	CountryTag  string `json:"country_tag"`
+	CountryName string `json:"country_name"`
+}
+
+func (q *Queries) GetCountries(ctx context.Context) ([]GetCountriesRow, error) {
+	rows, err := q.db.Query(ctx, getCountries)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCountriesRow
+	for rows.Next() {
+		var i GetCountriesRow
+		if err := rows.Scan(&i.CountryTag, &i.CountryName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getCountryID = `-- name: GetCountryID :one
 SELECT id FROM countries
 WHERE country_tag = $1
@@ -31,28 +63,4 @@ func (q *Queries) GetCountryTag(ctx context.Context, id int16) (string, error) {
 	var country_tag string
 	err := row.Scan(&country_tag)
 	return country_tag, err
-}
-
-const listCountries = `-- name: ListCountries :many
-SELECT country_tag FROM countries
-`
-
-func (q *Queries) ListCountries(ctx context.Context) ([]string, error) {
-	rows, err := q.db.Query(ctx, listCountries)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []string
-	for rows.Next() {
-		var country_tag string
-		if err := rows.Scan(&country_tag); err != nil {
-			return nil, err
-		}
-		items = append(items, country_tag)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }

@@ -15,6 +15,7 @@ func (app *Application) routes() *chi.Mux {
 	r.Route("/api", func(r chi.Router) {
 		// unauthorized routes
 		r.Get("/health", app.healthcheck)
+		r.Get("/country", app.getCountries)
 		r.Get("/lobby/{lobby_id}", app.getLobby)
 		r.Post("/user", app.newUser)
 
@@ -24,8 +25,9 @@ func (app *Application) routes() *chi.Mux {
 			r.Post("/lobby", app.newLobby)
 			r.Patch("/lobby/{lobby_id}", app.updateLobby)
 			r.Post("/lobby/{lobby_id}/country", app.addLobbyCountry)
+
 			// r.Delete("lobby/{lobby_idy}/country/{country_tag}", app.deleteLobbyCountry)
-			// r.Put("lobby/{lobby_id}/{country_tag", app.editLobbyCountry)
+			// r.Put("lobby/{lobby_id}/{country_tag}", app.editLobbyCountry)
 
 			r.Post("/lobby/{lobby_id}/player", app.joinLobby)
 			// r.Patch("/lobby/{lobby_id}/player", app.editPlayerSlot)

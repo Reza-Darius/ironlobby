@@ -57,8 +57,9 @@ func (ns NullGamemode) Value() (driver.Value, error) {
 }
 
 type Country struct {
-	ID         int16  `json:"id"`
-	CountryTag string `json:"country_tag"`
+	ID          int16  `json:"id"`
+	CountryTag  string `json:"country_tag"`
+	CountryName string `json:"country_name"`
 }
 
 type Lobby struct {
@@ -84,8 +85,9 @@ type Player struct {
 }
 
 type PlayerLobby struct {
-	PlayerID  uuid.UUID `json:"player_id"`
-	LobbyID   int64     `json:"lobby_id"`
-	CountryID int16     `json:"country_id"`
-	JoinedAt  time.Time `json:"joined_at"`
+	PlayerID  uuid.UUID   `json:"player_id"`
+	LobbyID   int64       `json:"lobby_id"`
+	CountryID int16       `json:"country_id"`
+	Note      pgtype.Text `json:"note"`
+	JoinedAt  time.Time   `json:"joined_at"`
 }

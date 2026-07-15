@@ -179,3 +179,12 @@ func (db *Database) UpdateLobby(ctx context.Context, arg UpdateLobbyParams) erro
 	}
 	return nil
 }
+
+func (db *Database) GetCountries(ctx context.Context) ([]GetCountriesRow, error) {
+	q := New(db.pool)
+	countries, err := q.GetCountries(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return countries, nil
+}

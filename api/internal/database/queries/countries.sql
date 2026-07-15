@@ -6,5 +6,8 @@ WHERE country_tag = $1;
 SELECT country_tag FROM countries
 WHERE id = $1;
 
--- name: ListCountries :many
-SELECT country_tag FROM countries;
+-- name: GetCountries :many
+SELECT
+    country_tag,
+    country_name
+FROM countries;

@@ -8,54 +8,55 @@ CREATE TABLE IF NOT EXISTS player (
 
 CREATE TABLE IF NOT EXISTS countries (
     id SMALLINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    country_tag CHAR(3) NOT NULL UNIQUE
+    country_tag CHAR(3) NOT NULL UNIQUE,
+    country_name TEXT NOT NULL UNIQUE
 );
 
-INSERT INTO countries (country_tag) VALUES
-('GER'), -- Germany
-('SOV'), -- Soviet Union
-('USA'), -- United States
-('ENG'), -- United Kingdom
-('FRA'), -- France
-('ITA'), -- Italy
-('JAP'), -- Japan
-('CHI'), -- China
-('POL'), -- Poland
-('CAN'), -- Canada
-('AST'), -- Australia
-('NZL'), -- New Zealand
-('SAF'), -- South Africa
-('RAJ'), -- British Raj
-('HOL'), -- Netherlands
-('BEL'), -- Belgium
-('LUX'), -- Luxembourg
-('NOR'), -- Norway
-('DEN'), -- Denmark
-('SWE'), -- Sweden
-('FIN'), -- Finland
-('SPR'), -- Spain
-('POR'), -- Portugal
-('TUR'), -- Turkey
-('GRE'), -- Greece
-('YUG'), -- Yugoslavia
-('ROM'), -- Romania
-('HUN'), -- Hungary
-('BUL'), -- Bulgaria
-('CZE'), -- Czechoslovakia
-('MEX'), -- Mexico
-('BRA'), -- Brazil
-('ARG'), -- Argentina
-('CHL'), -- Chile
-('PRC'), -- Communist China
-('MAN'), -- Manchukuo
-('MON'), -- Mongolia
-('TIB'), -- Tibet
-('PER'), -- Iran/Persia
-('IRQ'), -- Iraq
-('EGY'), -- Egypt
-('ETH'), -- Ethiopia
-('THA'), -- Thailand
-('PHI'); -- Philippines
+INSERT INTO countries (country_tag, country_name) VALUES
+('GER', 'Germany'),
+('SOV', 'Soviet Union'),
+('USA', 'United States'),
+('ENG', 'United Kingdom'),
+('FRA', 'France'),
+('ITA', 'Italy'),
+('JAP', 'Japan'),
+('CHI', 'China'),
+('POL', 'Poland'),
+('CAN', 'Canada'),
+('AST', 'Australia'),
+('NZL', 'New Zealand'),
+('SAF', 'South Africa'),
+('RAJ', 'British Raj'),
+('HOL', 'Netherlands'),
+('BEL', 'Belgium'),
+('LUX', 'Luxembourg'),
+('NOR', 'Norway'),
+('DEN', 'Denmark'),
+('SWE', 'Sweden'),
+('FIN', 'Finland'),
+('SPR', 'Spain'),
+('POR', 'Portugal'),
+('TUR', 'Turkey'),
+('GRE', 'Greece'),
+('YUG', 'Yugoslavia'),
+('ROM', 'Romania'),
+('HUN', 'Hungary'),
+('BUL', 'Bulgaria'),
+('CZE', 'Czechoslovakia'),
+('MEX', 'Mexico'),
+('BRA', 'Brazil'),
+('ARG', 'Argentina'),
+('CHL', 'Chile'),
+('PRC', 'Communist China'),
+('MAN', 'Manchukuo'),
+('MON', 'Mongolia'),
+('TIB', 'Tibet'),
+('PER', 'Iran'),
+('IRQ', 'Iraq'),
+('EGY', 'Egypt'),
+('ETH', 'Ethiopia'),
+('THA', 'Thailand'),
+('PHI', 'Philippines');
 
 CREATE TYPE GAMEMODE AS ENUM ('vanilla', 'modded', 'rp');
 
@@ -85,6 +86,7 @@ CREATE TABLE player_lobby (
     player_id UUID NOT NULL REFERENCES player (id) ON DELETE CASCADE,
     lobby_id BIGINT NOT NULL,
     country_id SMALLINT NOT NULL,
+    note TEXT,
 
     joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 

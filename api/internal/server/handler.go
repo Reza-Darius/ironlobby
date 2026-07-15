@@ -62,6 +62,21 @@ func (app *Application) newUser(w http.ResponseWriter, r *http.Request) {
 	slog.Info("new user registered", "username", username, "id", id)
 }
 
+func (app *Application) getCountries(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	countries, err := app.db.GetCountries(ctx)
+	if err != nil {
+		http.Error(w, "couldnt fetch countries", http.StatusInternalServerError)
+		return
+	}
+	err = encode(w, http.StatusOK, countries)
+	if err != nil {
+		http.Error(w, "couldnt encode countries", http.StatusInternalServerError)
+		return
+	}
+}
+
+
 func (app *Application) getLobby(w http.ResponseWriter, r *http.Request) {
 	lobbyID := chi.URLParam(r, "lobby_id")
 	if lobbyID == "" {

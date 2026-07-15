@@ -52,8 +52,8 @@ func (app *Application) AuthSession(next http.Handler) http.Handler {
 	})
 }
 
-func WriteUserCookie(w http.ResponseWriter, userID uuid.UUID) {
-	http.SetCookie(w, &http.Cookie{
+func WriteUserCookie(w http.ResponseWriter, userID uuid.UUID, debug bool) {
+	cookie :=  &http.Cookie{
 		Name:     CookieName,
 		Value:    userID.String(),
 		Path:     "/",
@@ -61,8 +61,28 @@ func WriteUserCookie(w http.ResponseWriter, userID uuid.UUID) {
 		Secure:   true,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-	})
-
+	}
+	if debug {
+		cookie.Secure = false
+		cookie.HttpOnly = false
+	}
+	http.SetCookie(w, cookie)
 	w.Header().Add("Vary", "Cookie")
 	w.Header().Add("Cache-Control", `no-cache="Set-Cookie"`)
+}
+
+// middleware to enable cors for development
+func CorsDebug(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-CSRF-Token, HX-Request, HX-Trigger, HX-Trigger-Name, HX-Target, HX-Current-URL")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }

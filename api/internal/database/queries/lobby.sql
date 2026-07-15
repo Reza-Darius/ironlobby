@@ -44,6 +44,13 @@ ON CONFLICT (lobby_id, country_id)
 DO UPDATE SET max_slots = excluded.max_slots
 RETURNING *;
 
+-- name: DeleteLobbyCountry :exec
+DELETE FROM lobby_countries
+WHERE lobby_id = $1 AND country_id = (
+    SELECT id FROM countries
+    WHERE country_tag = $2
+);
+
 -- name: OpenLobbies :one
 SELECT COUNT(*) FROM lobby
 WHERE starts_at <= NOW();
@@ -104,4 +111,3 @@ SET
     ingame_id = COALESCE(sqlc.narg(ingame_id), ingame_id)
 WHERE id = sqlc.arg(lobby_id)
 RETURNING *;
-

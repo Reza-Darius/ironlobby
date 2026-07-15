@@ -37,6 +37,24 @@ func (q *Queries) CountCountryOccupants(ctx context.Context, arg CountCountryOcc
 	return count, err
 }
 
+const deleteLobbyCountry = `-- name: DeleteLobbyCountry :exec
+DELETE FROM lobby_countries
+WHERE lobby_id = $1 AND country_id = (
+    SELECT id FROM countries
+    WHERE country_tag = $2
+)
+`
+
+type DeleteLobbyCountryParams struct {
+	LobbyID    int64  `json:"lobby_id"`
+	CountryTag string `json:"country_tag"`
+}
+
+func (q *Queries) DeleteLobbyCountry(ctx context.Context, arg DeleteLobbyCountryParams) error {
+	_, err := q.db.Exec(ctx, deleteLobbyCountry, arg.LobbyID, arg.CountryTag)
+	return err
+}
+
 const getLobbyCountries = `-- name: GetLobbyCountries :many
 SELECT
     countries.country_tag,

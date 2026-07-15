@@ -24,7 +24,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = server.Run(config.Addr, config.Port, db)
+	err = server.Run(&config, db)
 	if err != nil {
 		slog.Error("server error", "err", err)
 		os.Exit(1)

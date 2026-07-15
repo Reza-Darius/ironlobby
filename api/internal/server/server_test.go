@@ -463,3 +463,66 @@ func TestUpdateLobby(t *testing.T) {
 		t.Fatalf("update didnt work")
 	}
 }
+
+func TestDeleteLobby(t *testing.T) {
+	srv := utils.NewTestServer(t, testApp.routes())
+	defer srv.Close()
+
+	err := NewUser(srv, "player2")
+	if err != nil {
+		t.Fatalf("failed to create user %v", err)
+	}
+
+	lobbyCreateBody := database.InsertLobbyParams{
+		LobbyName:   "Historical PVP",
+		StartsAt:    time.Now().AddDate(0, 0, 7),
+		Gamemode:    database.GamemodeVanilla,
+		Description: "schizo lobby",
+	}
+
+	lobbyID, err := CreateLobby(srv, &lobbyCreateBody)
+	if err != nil {
+		t.Fatalf("failed to create lobby err: %v", err)
+	}
+
+	// add GER
+	err = AddCountry(srv, &database.UpsertLobbyCountryParams{
+		LobbyID: lobbyID,
+		CountryTag: "GER",
+		MaxSlots: 1,
+	})
+	if err != nil {
+		t.Fatalf("failed to add country err: %v", err)
+	}
+
+	// fetch lobby
+	lobbyIDstr := strconv.Itoa(int(lobbyID))
+	lobby, err := srv.Client().Get(srv.URL + "/api/lobby/" + lobbyIDstr)
+	defer lobby.Body.Close()
+	if err != nil {
+		t.Fatalf("failed to get a response, err: %v", err)
+	}
+
+	body, err := io.ReadAll(lobby.Body)
+	if err != nil {
+		t.Fatalf("failed to read body, err: %v", err)
+	}
+
+	var lobbyParsed database.LobbyInfo
+	err = json.Unmarshal(body, &lobbyParsed)
+	if err != nil {
+		t.Fatalf("failed to unmarshal body, err: %v", err)
+	}
+
+	
+	if !assert.Equal(t, 1, len(lobbyParsed.Countries), "delete should work") {
+		t.Fatalf("deletet didnt work")
+	}
+
+	// delete GER
+	req, err := http.NewRequest("DELETE", srv.URL + "/api/lobby/" + lobbyIDstr + "/country/GER",  bytes.NewBuffer([]byte{}))
+	if err != nil {
+		t.Fatalf("failed to createt request, err: %v", err)
+	}
+	_, err = srv.Client().Do(req)
+}

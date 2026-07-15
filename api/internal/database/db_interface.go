@@ -48,6 +48,11 @@ func (db *Database) NewUser(ctx context.Context, playerName string) (uuid.UUID, 
 	return player.ID, err
 }
 
+type CreateLobbyRequest struct {
+	Lobby InsertLobbyParams `json:"lobby"`
+	Countries []UpsertLobbyCountryParams `json:"countries"`
+}
+
 func (db *Database) CreateLobby(ctx context.Context, arg InsertLobbyParams) (Lobby, error) {
 	q := New(db.pool)
 	lobby, err := q.InsertLobby(ctx, arg)
@@ -171,6 +176,15 @@ func (db *Database) AddLobbyCountry(ctx context.Context, arg UpsertLobbyCountryP
 	return nil
 }
 
+func (db *Database) DeleteLobbyCountry(ctx context.Context, arg DeleteLobbyCountryParams) error {
+	q := New(db.pool)
+	err := q.DeleteLobbyCountry(ctx, arg)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (db *Database) UpdateLobby(ctx context.Context, arg UpdateLobbyParams) error {
 	q := New(db.pool)
 	_, err := q.UpdateLobby(ctx, arg)
@@ -188,3 +202,5 @@ func (db *Database) GetCountries(ctx context.Context) ([]GetCountriesRow, error)
 	}
 	return countries, nil
 }
+
+

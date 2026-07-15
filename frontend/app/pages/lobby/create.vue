@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { FormSubmitEvent } from '@nuxt/ui'
 import { Time, today, getLocalTimeZone, toCalendarDateTime } from '@internationalized/date'
-import { lobbySchema, type LobbySchema } from '~/schemas/lobby'
+import { lobbySchema, gameModes, type LobbySchema } from '~/schemas/lobby'
 
 const { data: countries } = await useCountries()
 
@@ -14,8 +14,10 @@ const state = reactive({
   date: minDate,
   time: new Time(12, 0, 0),
   countries: [{ id: nextId++, tag: '', players: 1 }],
-  gameMode: ''
+  gameMode: undefined as LobbySchema['gameMode'] | undefined,
 })
+
+const gameModeItems = [...gameModes]
 
 function addCountry() {
   state.countries.push({ id: nextId++, tag: '', players: 1 })
@@ -53,12 +55,16 @@ async function onSubmit(event: FormSubmitEvent<LobbySchema>) {
 }
 
 const lobbyDate = useTemplateRef('lobbyDate')
-
-const gameModes = ref(['Vanilla', 'modded', 'rp'])
 </script>
 
 <template>
-  <UForm :schema="lobbySchema" :state="state" class="space-y-6" @submit="onSubmit">
+  <UForm
+    :schema="lobbySchema"
+    :state="state"
+    :validate-on="['input', 'change', 'blur']"
+    class="space-y-6"
+    @submit="onSubmit"
+  >
     <h1 class="text-xl font-semibold">Create Lobby</h1>
 
     <div class="space-y-4">
@@ -70,10 +76,9 @@ const gameModes = ref(['Vanilla', 'modded', 'rp'])
         <UTextarea v-model="state.description" class="w-full" />
       </UFormField>
 
-      
       <div class="flex gap-4">
-        <UFormField label="Gamemode" name="gamemode" required>
-            <USelect v-model="state.gameMode" :items="gameModes" placeholder="Select a Gamemode" />
+        <UFormField label="Gamemode" name="gameMode" required>
+          <USelect v-model="state.gameMode" :items="gameModeItems" placeholder="Select a Gamemode" />
         </UFormField>
 
         <UFormField label="Date" name="date" required>
@@ -120,7 +125,6 @@ const gameModes = ref(['Vanilla', 'modded', 'rp'])
         type="button"
         icon="i-lucide-plus"
         variant="soft"
-        :disabled="state.countries.length >= countries.length"
         @click="addCountry"
       >
         Add Country

@@ -12,7 +12,7 @@ import (
 func main() {
 	utils.InitLogging()
 
-	config, err := utils.LoadConfig()
+	config, err := utils.LoadConfigEnv()
 	if err != nil {
 		slog.Error("failed to load config", "err", err)
 		os.Exit(1)

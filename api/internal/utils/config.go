@@ -13,12 +13,22 @@ type AppConfig struct {
 	DBUrl         string `env:"DATABASE_URL"`
 }
 
-func LoadConfig() (AppConfig, error) {
+func LoadConfigEnv() (AppConfig, error) {
 	var cfg AppConfig
 	err := cleanenv.ReadEnv(&cfg)
 	if err != nil {
 		return AppConfig{}, err
 	}
-	slog.Info("config loaded")
+	slog.Info("config loaded from env variables")
+	return cfg, nil
+}
+
+func LoadConfigFile(path string) (AppConfig, error) {
+	var cfg AppConfig
+	err := cleanenv.ReadConfig(path, &cfg)
+	if err != nil {
+		return AppConfig{}, err
+	}
+	slog.Info("config loaded from file", "path", path)
 	return cfg, nil
 }

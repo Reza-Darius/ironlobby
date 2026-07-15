@@ -16,11 +16,11 @@ func (app *Application) AuthSession(next http.Handler) http.Handler {
 		{
 			cookie, err := r.Cookie(CookieName)
 			if err != nil || cookie.Value == "" {
-				// redirect to login page
 				if err == http.ErrNoCookie {
 					log.Println("no cookie detected, redirecting")
 
-					http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+					// frontend handles redirect
+					w.WriteHeader(http.StatusUnauthorized)
 					return
 				}
 				slog.Error("auth handler error when retrieving cookie", "error", err)
@@ -28,21 +28,23 @@ func (app *Application) AuthSession(next http.Handler) http.Handler {
 				return
 			}
 
-			// err = app.Sessions.Authenticate(r)
-			// if err != nil {
-			// 	if err == auth.SessionExpired {
-			// 		log.Println("cookies expired")
-			// 		http.Redirect(w, r, "/login", 307)
-			// 		return
-			// 	}
-			// 	slog.Info("authentication failed")
-			// 	w.WriteHeader(http.StatusUnauthorized)
-			// 	w.Write([]byte("unauthorized"))
-			// 	return
-			// }
+			intUUID, err := uuid.Parse(cookie.Value)
+			if err != nil {
+				slog.Error("UUID could not be parsed", "err", err)
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			// validate user exists
+			_, err = app.db.GetUser(r.Context(), intUUID)
+			if err != nil {
+				slog.Error("could not retrieve user from db", "err", err)
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
 
 			// create new context with attached key value pair, inherit parent context (request)
-			ctx := context.WithValue(r.Context(), "userID", cookie.Value)
+			ctx := context.WithValue(r.Context(), CookieName, intUUID)
 
 			// attach context to next handler
 			next.ServeHTTP(w, r.WithContext(ctx))

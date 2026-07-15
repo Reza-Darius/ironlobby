@@ -57,8 +57,9 @@ func (ns NullGamemode) Value() (driver.Value, error) {
 }
 
 type Country struct {
-	ID         int16  `json:"id"`
-	CountryTag string `json:"country_tag"`
+	ID          int16  `json:"id"`
+	CountryTag  string `json:"country_tag"`
+	CountryName string `json:"country_name"`
 }
 
 type Lobby struct {
@@ -69,13 +70,13 @@ type Lobby struct {
 	PlayerCount int32       `json:"player_count"`
 	Gamemode    Gamemode    `json:"gamemode"`
 	IngameID    pgtype.Text `json:"ingame_id"`
+	Description string      `json:"description"`
 }
 
 type LobbyCountry struct {
-	LobbyID       int64 `json:"lobby_id"`
-	CountryID     int32 `json:"country_id"`
-	OccupiedSlots int32 `json:"occupied_slots"`
-	MaxSlots      int32 `json:"max_slots"`
+	LobbyID   int64 `json:"lobby_id"`
+	CountryID int16 `json:"country_id"`
+	MaxSlots  int16 `json:"max_slots"`
 }
 
 type Player struct {
@@ -84,8 +85,9 @@ type Player struct {
 }
 
 type PlayerLobby struct {
-	PlayerID  uuid.UUID `json:"player_id"`
-	LobbyID   int64     `json:"lobby_id"`
-	CountryID int32     `json:"country_id"`
-	JoinedAt  time.Time `json:"joined_at"`
+	PlayerID  uuid.UUID   `json:"player_id"`
+	LobbyID   int64       `json:"lobby_id"`
+	CountryID int16       `json:"country_id"`
+	Note      pgtype.Text `json:"note"`
+	JoinedAt  time.Time   `json:"joined_at"`
 }

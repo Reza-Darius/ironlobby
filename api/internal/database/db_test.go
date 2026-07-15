@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/reza-darius/ironlobby/internal/utils"
 	"github.com/stretchr/testify/assert"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
 )
+
 
 var testDB *Queries
 
@@ -19,31 +19,8 @@ func TestMain(m *testing.M) {
 	utils.InitLogging()
 	ctx := context.Background()
 
-	pg, err := postgres.Run(
-		ctx,
-		"postgres:18",
-		postgres.WithDatabase("testdb"),
-		postgres.WithUsername("test"),
-		postgres.WithPassword("test"),
-		postgres.BasicWaitStrategies(),
-	)
-	if err != nil {
-		log.Fatalf("failed to start postgres container: %v", err)
-	}
-	// no ctx here on purpose - don't want teardown tied to a
-	// context that might get cancelled early
-	defer func() {
-	}()
+	db, pg := NewTestDBContainer()
 
-	connStr, err := pg.ConnectionString(ctx, "sslmode=disable")
-	if err != nil {
-		log.Fatalf("failed to get connection string: %v", err)
-	}
-
-	db, err := NewDB(connStr)
-	if err != nil {
-		log.Fatalf("failed to connect to db: %v", err)
-	}
 	testDB = New(db.pool)
 
 	code := m.Run()
@@ -94,7 +71,7 @@ func TestInsert(t *testing.T) {
 	}
 	t.Logf("lobby created: %v", lobby)
 
-	err = testDB.AddLobbyCountry(ctx, AddLobbyCountryParams{
+	_, err = testDB.UpsertLobbyCountry(ctx, UpsertLobbyCountryParams{
 		LobbyID:    lobby.ID,
 		CountryTag: "GER",
 		MaxSlots:   2,
@@ -102,7 +79,7 @@ func TestInsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to add lobby country GER %v", err)
 	}
-	err = testDB.AddLobbyCountry(ctx, AddLobbyCountryParams{
+	_, err = testDB.UpsertLobbyCountry(ctx, UpsertLobbyCountryParams{
 		LobbyID:    lobby.ID,
 		CountryTag: "SOV",
 		MaxSlots:   1,
@@ -110,7 +87,7 @@ func TestInsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to add lobby country SOV %v", err)
 	}
-	err = testDB.AddLobbyCountry(ctx, AddLobbyCountryParams{
+	_, err = testDB.UpsertLobbyCountry(ctx, UpsertLobbyCountryParams{
 		LobbyID:    lobby.ID,
 		CountryTag: "JAP",
 		MaxSlots:   1,
@@ -127,10 +104,10 @@ func TestInsert(t *testing.T) {
 	assert.Equal(t, len(lobbyInfo), 3)
 
 	for _, row := range lobbyInfo {
-		t.Logf("lobby country row: tag = %v, occupied_slots = %v, max_slots = %v", row.CountryTag, row.OccupiedSlots, row.MaxSlots)
+		t.Logf("lobby country row: tag = %v, max_slots = %v", row.CountryTag, row.MaxSlots)
 	}
 
-	err = testDB.AssignPlayerToLobby(ctx, AssignPlayerToLobbyParams{
+	_, err = testDB.UpsertPlayerLobby(ctx, UpsertPlayerLobbyParams{
 		LobbyID:    lobby.ID,
 		CountryTag: "GER",
 		PlayerID:   regPlayer["pray"],
@@ -138,7 +115,7 @@ func TestInsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to register pray to GER %v", err)
 	}
-	err = testDB.AssignPlayerToLobby(ctx, AssignPlayerToLobbyParams{
+	_, err = testDB.UpsertPlayerLobby(ctx, UpsertPlayerLobbyParams{
 		LobbyID:    lobby.ID,
 		CountryTag: "JAP",
 		PlayerID:   regPlayer["inno"],
@@ -146,7 +123,7 @@ func TestInsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to register inno to JAP %v", err)
 	}
-	err = testDB.AssignPlayerToLobby(ctx, AssignPlayerToLobbyParams{
+	_, err = testDB.UpsertPlayerLobby(ctx, UpsertPlayerLobbyParams{
 		LobbyID:    lobby.ID,
 		CountryTag: "SOV",
 		PlayerID:   regPlayer["skrt"],

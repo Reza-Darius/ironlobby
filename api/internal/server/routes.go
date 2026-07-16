@@ -21,12 +21,14 @@ func (app *Application) routes() *chi.Mux {
 
 	r.Route("/api", func(r chi.Router) {
 		// unauthorized routes
+		r.Post("/user", app.newUser)
+
 		r.Get("/health", app.healthcheck)
 		r.Get("/countries", app.getCountries)
+
 		r.Get("/lobby/{lobby_id}", app.getLobby)
 		r.Get("/lobby/{lobby_id}/country", app.getLobbyCountries)
 		r.Get("/lobby/{lobby_id}/player", app.getLobbyPlayers)
-		r.Post("/user", app.newUser)
 
 		// authorized routes, require a user name with a corresponding cookie with the user's id
 		r.Group(func(r chi.Router) {
@@ -36,6 +38,7 @@ func (app *Application) routes() *chi.Mux {
 			
 			r.Post("/lobby", app.newLobby)
 			r.Patch("/lobby/{lobby_id}", app.updateLobby)
+
 			r.Post("/lobby/{lobby_id}/country", app.addLobbyCountry)
 			r.Delete("/lobby/{lobby_id}/country/{country_tag}", app.deleteLobbyCountry)
 			r.Patch("/lobby/{lobby_id}/country/{country_tag}", app.updateLobbyCountry)

@@ -56,7 +56,7 @@ type CreateLobbyRequest struct {
 	Countries []UpsertLobbyCountryParams `json:"countries"`
 }
 
-func (db *Database) CreateLobby(ctx context.Context, arg CreateLobbyRequest) (Lobby, error) {
+func (db *Database) NewLobby(ctx context.Context, arg CreateLobbyRequest) (Lobby, error) {
 	tx, err := db.pool.Begin(ctx)
 	if err != nil {
 		return Lobby{}, err
@@ -99,8 +99,8 @@ func (db *Database) CreateLobby(ctx context.Context, arg CreateLobbyRequest) (Lo
 	return lobby, tx.Commit(ctx)
 }
 
-// JoinLobby adds a player to a lobby or changes the player's country tag inside the lobby
-func (db *Database) JoinLobby(ctx context.Context, arg UpsertLobbyPlayerParams) error {
+// UpsertLobbyPlayer adds a player to a lobby or changes the player's country tag inside the lobby
+func (db *Database) UpsertLobbyPlayer(ctx context.Context, arg UpsertLobbyPlayerParams) error {
 	tx, err := db.pool.Begin(ctx)
 	if err != nil {
 		return err

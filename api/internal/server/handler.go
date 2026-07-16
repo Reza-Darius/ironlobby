@@ -182,7 +182,7 @@ func (app *Application) newLobby(w http.ResponseWriter, r *http.Request) {
 	// we get the hostID from the cookie
 	lobbyParams.Lobby.HostPlayer = GetPlayerID(r)
 
-	lobby, err := app.db.CreateLobby(r.Context(), lobbyParams)
+	lobby, err := app.db.NewLobby(r.Context(), lobbyParams)
 	if err != nil {
 		switch err {
 
@@ -233,7 +233,7 @@ func (app *Application) joinLobby(w http.ResponseWriter, r *http.Request) {
 	joinParams.PlayerID = playerID
 	joinParams.LobbyID = lobbyID
 
-	err = app.db.JoinLobby(r.Context(), joinParams)
+	err = app.db.UpsertLobbyPlayer(r.Context(), joinParams)
 	if err != nil {
 		switch err {
 		case database.ErrNationSlotsFull:

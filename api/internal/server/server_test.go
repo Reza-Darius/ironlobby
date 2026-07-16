@@ -364,7 +364,8 @@ func TestJoinLobby(t *testing.T) {
 	}
 
 	// join lobby
-	url = srv.URL + "/api/lobby/" + strconv.Itoa(int(lobbyID)) + "/player"
+	lobbyIDstr := strconv.Itoa(int(lobbyID))
+	url = srv.URL + "/api/lobby/" + lobbyIDstr + "/player"
 	res, err = srv.Client().Post(url, "application/json", bytes.NewBuffer(joinLobbyJSON))
 	defer res.Body.Close()
 	if err != nil {
@@ -445,6 +446,41 @@ func TestJoinLobby(t *testing.T) {
 	assert.Equal(t, "ITA", lobbyInfo.Players[0].CountryTag)
 	assert.Equal(t, username, lobbyInfo.Players[0].PlayerName)
 	assert.Equal(t, lobbyID, lobbyInfo.Players[0].LobbyID)
+
+	// leave lobby
+	req, err := http.NewRequest("DELETE", srv.URL+"/api/lobby/"+lobbyIDstr+"/player", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err = srv.Client().Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to delete") {
+		t.FailNow()
+	}
+
+	res, err = srv.Client().Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !assert.Equal(t, http.StatusNotFound, res.StatusCode, "second delete should be 404") {
+		t.FailNow()
+	}
+
+	// check lobby again
+	lobby, err = srv.Client().Get(srv.URL + "/api/lobby/" + lobbyIDstr)
+	defer lobby.Body.Close()
+	if err != nil {
+		t.Fatalf("failed to get a response, err: %v", err)
+	}
+
+	err = json.NewDecoder(lobby.Body).Decode(&lobbyInfo)
+	if err != nil {
+		t.Fatalf("failed to unmarshal body, err: %v", err)
+	}
+
+	assert.Equal(t, 0, len(lobbyInfo.Players), "no player should be left")
 }
 
 func TestUpdateLobby(t *testing.T) {
@@ -517,9 +553,9 @@ func TestUpdateLobby(t *testing.T) {
 
 	// add country
 	err = AddTestCountry(srv, &database.UpsertLobbyCountryParams{
-		LobbyID: lobbyID,
+		LobbyID:    lobbyID,
 		CountryTag: "GER",
-		MaxSlots: 1,
+		MaxSlots:   1,
 	})
 	if err != nil {
 		t.Fatalf("failed to add country, err: %v", err)
@@ -534,7 +570,7 @@ func TestUpdateLobby(t *testing.T) {
 		t.Fatalf("failed to marshal update lobby country params")
 	}
 
-	req, err = http.NewRequest("PATCH", srv.URL + "/api/lobby/"+lobbyIDstr+"/GER", bytes.NewBuffer(out))
+	req, err = http.NewRequest("PATCH", srv.URL+"/api/lobby/"+lobbyIDstr+"/GER", bytes.NewBuffer(out))
 	if err != nil {
 		t.Fatalf("failed to create request err: %v", err)
 	}

@@ -2,29 +2,26 @@ package server
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5"
 	"github.com/reza-darius/ironlobby/internal/database"
 )
 
 func (app *Application) healthcheck(w http.ResponseWriter, r *http.Request) {
 	openLobbies, err := app.db.OpenLobbies(r.Context())
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
 		slog.Error("health check error when fetching open lobbies from db", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	_, err = fmt.Fprintf(w, "open lobbies: %v", openLobbies)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
 		slog.Error("health check error when writing to response", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 }
@@ -35,8 +32,8 @@ func (app *Application) newUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&username); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
 		slog.Error("error when decoding request body for new user", "err", err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -60,7 +57,8 @@ func (app *Application) newUser(w http.ResponseWriter, r *http.Request) {
 	}
 	WriteUserCookie(w, id, app.config.DebugCors)
 
-	slog.Info("new user registered", "username", username, "id", id)
+	w.WriteHeader(http.StatusCreated)
+	slog.Debug("new user registered", "username", username, "id", id)
 }
 
 func (app *Application) getCountries(w http.ResponseWriter, r *http.Request) {
@@ -77,30 +75,27 @@ func (app *Application) getCountries(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-
 func (app *Application) getLobby(w http.ResponseWriter, r *http.Request) {
-	lobbyID := chi.URLParam(r, "lobby_id")
-	if lobbyID == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		slog.Error("invalid lobby ID provided")
+	lobbyID, err := getLobbyID(r)
+	if err != nil {
+		http.Error(w, "couldnt retrieve lobby id", http.StatusBadRequest)
 		return
 	}
 
-	IDInt, err := strconv.ParseInt(lobbyID, 10, 64)
+	lobby, err := app.db.GetLobby(r.Context(), lobbyID)
 	if err != nil {
-		slog.Error("lobby int parse error", "err", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+		switch err {
+		case database.ErrLobbyDoesntExists:
+			{
+				http.Error(w, "lobby not found", http.StatusNotFound)
+			}
 
-	lobby, err := app.db.GetLobby(r.Context(), IDInt)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			http.Error(w, "lobby not found", http.StatusNotFound)
-		} else {
-			w.WriteHeader(http.StatusInternalServerError)
+		default:
+			{
+				slog.Error("error when fetching lobby", "err", err)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+			}
 		}
-		slog.Error("error when fetching lobby from db", "err", err)
 		return
 	}
 
@@ -108,6 +103,70 @@ func (app *Application) getLobby(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		slog.Error("error when encoding json body in get lobby", "err", err)
+		return
+	}
+}
+
+func (app *Application) getLobbyCountries(w http.ResponseWriter, r *http.Request) {
+	lobbyID, err := getLobbyID(r)
+	if err != nil {
+		http.Error(w, "couldnt retrieve lobby id", http.StatusBadRequest)
+		return
+	}
+
+	lobby, err := app.db.GetLobbyCountries(r.Context(), lobbyID)
+	if err != nil {
+		switch err {
+		case database.ErrLobbyDoesntExists:
+			{
+				http.Error(w, "lobby not found", http.StatusNotFound)
+			}
+
+		default:
+			{
+				slog.Error("error when fetching lobby countries", "err", err)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+			}
+		}
+		return
+	}
+
+	err = encode(w, http.StatusOK, lobby)
+	if err != nil {
+		slog.Error("error when encoding json body in get lobby countries", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+}
+
+func (app *Application) getLobbyPlayers(w http.ResponseWriter, r *http.Request) {
+	lobbyID, err := getLobbyID(r)
+	if err != nil {
+		http.Error(w, "couldnt retrieve lobby id", http.StatusBadRequest)
+		return
+	}
+
+	lobby, err := app.db.GetLobbyPlayers(r.Context(), lobbyID)
+	if err != nil {
+		switch err {
+		case database.ErrLobbyDoesntExists:
+			{
+				http.Error(w, "lobby not found", http.StatusNotFound)
+			}
+
+		default:
+			{
+				slog.Error("error when fetching lobby countries", "err", err)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+			}
+		}
+		return
+	}
+
+	err = encode(w, http.StatusOK, lobby)
+	if err != nil {
+		slog.Error("error when encoding json body in get lobby player", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 }
@@ -123,7 +182,7 @@ func (app *Application) newLobby(w http.ResponseWriter, r *http.Request) {
 	// we get the hostID from the cookie
 	lobbyParams.Lobby.HostPlayer = GetPlayerID(r)
 
-	lobby, err := app.db.CreateLobby(r.Context(), lobbyParams)
+	lobby, err := app.db.NewLobby(r.Context(), lobbyParams)
 	if err != nil {
 		switch err {
 
@@ -141,43 +200,40 @@ func (app *Application) newLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = encode(w, http.StatusOK, lobby.ID)
+	newLobbyRes := struct {
+		LobbyID int64 `json:"lobby_id"`
+	}{
+		LobbyID: lobby.ID,
+	}
+
+	err = encode(w, http.StatusCreated, newLobbyRes)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		slog.Error("error when encoding json body in create lobby", "err", err)
 		return
 	}
 
-	slog.Info("new lobby created", "lobby", lobby)
+	slog.Debug("new lobby created", "lobby", lobby)
 }
 
 func (app *Application) joinLobby(w http.ResponseWriter, r *http.Request) {
-	joinParams, err := decode[database.UpsertPlayerLobbyParams](r)
+	joinParams, err := decode[database.UpsertLobbyPlayerParams](r)
 	if err != nil {
 		slog.Error("join lobby request body decode error", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	// player ID from cookie
-	joinParams.PlayerID = GetPlayerID(r)
-
-	// lobby ID from url path
-	lobbyID := chi.URLParam(r, "lobby_id")
-	if lobbyID == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		slog.Error("invalid lobby ID provided")
-		return
-	}
-
-	joinParams.LobbyID, err = strconv.ParseInt(lobbyID, 10, 64)
+	playerID, lobbyID, err := getIDs(r)
 	if err != nil {
-		slog.Error("lobby int parse error", "err", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, "invalid ids provided", http.StatusBadRequest)
 		return
 	}
 
-	err = app.db.JoinLobby(r.Context(), joinParams)
+	joinParams.PlayerID = playerID
+	joinParams.LobbyID = lobbyID
+
+	err = app.db.UpsertLobbyPlayer(r.Context(), joinParams)
 	if err != nil {
 		switch err {
 		case database.ErrNationSlotsFull:
@@ -200,11 +256,43 @@ func (app *Application) joinLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("player joined lobby", "player", joinParams.PlayerID.String(), "lobby", joinParams.LobbyID, "tag", joinParams.CountryTag)
+	w.WriteHeader(http.StatusCreated)
+	slog.Debug("player joined lobby", "player", joinParams.PlayerID.String(), "lobby", joinParams.LobbyID, "tag", joinParams.CountryTag)
+}
+
+func (app *Application) leaveLobby(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	playerID, lobbyID, err := getIDs(r)
+	if err != nil {
+		http.Error(w, "invalid ids provided", http.StatusBadRequest)
+		return
+	}
+	err = app.db.DeleteLobbyPlayer(ctx, database.DeleteLobbyPlayerParams{
+		PlayerID: playerID,
+		LobbyID:  lobbyID,
+	})
+	if err != nil {
+		switch err {
+		case database.ErrUserNotFound:
+			{
+				http.Error(w, "requested player doesnt exist in lobby or lobby doesnt exist", http.StatusNotFound)
+				return
+			}
+
+		default:
+			{
+				slog.Error("error when updating lobby country", "err", err)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+			}
+		}
+		return
+	}
+	slog.Debug("deleted user from lobby", "player", playerID, "lobby", lobbyID)
 }
 
 func (app *Application) updateLobby(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context();
+	ctx := r.Context()
 
 	_, lobbyID, err := checkHost(app.db, w, r)
 	if err != nil {
@@ -227,11 +315,11 @@ func (app *Application) updateLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("updated lobby", "lobby", lobbyID, "lobby_settings", updateParams)
+	slog.Debug("updated lobby", "lobby", lobbyID, "lobby_settings", updateParams)
 }
-func (app *Application) addLobbyCountry(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context();
 
+func (app *Application) addLobbyCountry(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 
 	_, lobbyID, err := checkHost(app.db, w, r)
 	if err != nil {
@@ -253,7 +341,7 @@ func (app *Application) addLobbyCountry(w http.ResponseWriter, r *http.Request) 
 		switch err {
 		case database.ErrCountryDoesntExist:
 			{
-				http.Error(w, "requested country doesnt exist", http.StatusBadRequest)
+				http.Error(w, "requested country doesnt exist", http.StatusNotFound)
 				return
 			}
 
@@ -265,11 +353,12 @@ func (app *Application) addLobbyCountry(w http.ResponseWriter, r *http.Request) 
 		}
 		return
 	}
-	slog.Info("added country to lobby", "lobby_id", lobbyID, "country", addLobbyCountryParams.CountryTag, "max_slots", addLobbyCountryParams.MaxSlots)
+	w.WriteHeader(http.StatusCreated)
+	slog.Debug("added country to lobby", "lobby", lobbyID, "country", addLobbyCountryParams.CountryTag, "max_slots", addLobbyCountryParams.MaxSlots)
 }
 
 func (app *Application) deleteLobbyCountry(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context();
+	ctx := r.Context()
 	_, lobbyID, err := checkHost(app.db, w, r)
 	if err != nil {
 		slog.Error("user is not host")
@@ -279,20 +368,76 @@ func (app *Application) deleteLobbyCountry(w http.ResponseWriter, r *http.Reques
 	tag := chi.URLParam(r, "country_tag")
 	tag = strings.ToUpper(tag)
 	if tag == "" {
-		slog.Error("invalid country tag", "provided", tag)
+		slog.Debug("invalid country tag", "provided", tag)
 		http.Error(w, "invalid country tag", http.StatusBadRequest)
 		return
 	}
 
 	err = app.db.DeleteLobbyCountry(ctx, database.DeleteLobbyCountryParams{
-		LobbyID: lobbyID,
+		LobbyID:    lobbyID,
 		CountryTag: tag,
 	})
-
 	if err != nil {
-		slog.Error("error when deleting lobby country", "err", err)
-		http.Error(w, "unable to fulfill write call", http.StatusInternalServerError)
+		switch err {
+		case database.ErrCountryDoesntExist:
+			{
+				http.Error(w, "requested country or lobby doesnt exist", http.StatusNotFound)
+				return
+			}
+
+		default:
+			{
+				slog.Error("error when deleting lobby country", "err", err)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+			}
+		}
 		return
 	}
-	slog.Info("deleted country from lobby", "countr", tag, "lobby_id", lobbyID)
+	slog.Debug("deleted country from lobby", "country", tag, "lobby", lobbyID)
+}
+
+func (app *Application) updateLobbyCountry(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	_, lobbyID, err := checkHost(app.db, w, r)
+	if err != nil {
+		slog.Error("user is not host")
+		return
+	}
+
+	tag := chi.URLParam(r, "country_tag")
+	tag = strings.ToUpper(tag)
+	if tag == "" {
+		slog.Debug("invalid country tag", "provided", tag)
+		http.Error(w, "invalid country tag", http.StatusBadRequest)
+		return
+	}
+
+	args, err := decode[database.UpdateLobbyCountryParams](r)
+	if err != nil {
+		slog.Error("delet lobby country request body decode error", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	args.LobbyID = lobbyID
+	args.CountryTag = tag
+
+	err = app.db.UpdateLobbyCountry(ctx, args)
+	if err != nil {
+		switch err {
+		case database.ErrCountryDoesntExist:
+			{
+				http.Error(w, "requested country or lobby doesnt exist", http.StatusNotFound)
+				return
+			}
+
+		default:
+			{
+				slog.Error("error when updating lobby country", "err", err)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+			}
+		}
+		return
+	}
+	slog.Debug("updated country in lobby", "country", tag, "lobby", lobbyID)
 }

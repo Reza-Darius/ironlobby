@@ -13,7 +13,10 @@ import (
 // domain errors to not expose PG internals
 var (
 	ErrUserNotFound          = errors.New("user not found")
+
 	ErrLobbyExists           = errors.New("lobby already exists")
+	ErrLobbyDoesntExists     = errors.New("lobby doesnt exist")
+
 	ErrUserExists            = errors.New("user already exists")
 	ErrNationSlotsFull       = errors.New("the requested nation's slots are full")
 	ErrNationNotAvail        = errors.New("the requested nation is not available")
@@ -53,7 +56,7 @@ type CreateLobbyRequest struct {
 	Countries []UpsertLobbyCountryParams `json:"countries"`
 }
 
-func (db *Database) CreateLobby(ctx context.Context, arg CreateLobbyRequest) (Lobby, error) {
+func (db *Database) NewLobby(ctx context.Context, arg CreateLobbyRequest) (Lobby, error) {
 	tx, err := db.pool.Begin(ctx)
 	if err != nil {
 		return Lobby{}, err
@@ -93,12 +96,11 @@ func (db *Database) CreateLobby(ctx context.Context, arg CreateLobbyRequest) (Lo
 	if err := br.Close(); err != nil {
 		return Lobby{}, err
 	}
-
 	return lobby, tx.Commit(ctx)
 }
 
-// JoinLobby adds a player to a lobby or changes the player's country tag inside the lobby
-func (db *Database) JoinLobby(ctx context.Context, arg UpsertPlayerLobbyParams) error {
+// UpsertLobbyPlayer adds a player to a lobby or changes the player's country tag inside the lobby
+func (db *Database) UpsertLobbyPlayer(ctx context.Context, arg UpsertLobbyPlayerParams) error {
 	tx, err := db.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -107,12 +109,10 @@ func (db *Database) JoinLobby(ctx context.Context, arg UpsertPlayerLobbyParams) 
 
 	q := New(db.pool).WithTx(tx)
 
-	targetTag := arg.CountryTag
-
 	// we lock the targeted country tag
 	maxSlots, err := q.LockLobbyCountrySlot(ctx, LockLobbyCountrySlotParams{
 		LobbyID:    arg.LobbyID,
-		CountryTag: targetTag,
+		CountryTag: arg.CountryTag,
 	})
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -126,7 +126,7 @@ func (db *Database) JoinLobby(ctx context.Context, arg UpsertPlayerLobbyParams) 
 	numOccuppied, err := q.CountCountryOccupants(ctx, CountCountryOccupantsParams{
 		PlayerID:   arg.PlayerID,
 		LobbyID:    arg.LobbyID,
-		CountryTag: targetTag,
+		CountryTag: arg.CountryTag,
 	})
 	if err != nil {
 		return err
@@ -137,15 +137,23 @@ func (db *Database) JoinLobby(ctx context.Context, arg UpsertPlayerLobbyParams) 
 		return ErrNationSlotsFull
 	}
 
-	_, err = q.UpsertPlayerLobby(ctx, UpsertPlayerLobbyParams{
-		CountryTag: targetTag,
-		PlayerID:   arg.PlayerID,
-		LobbyID:    arg.LobbyID,
-	})
+	_, err = q.UpsertLobbyPlayer(ctx, arg)
 	if err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
+}
+
+func (db *Database) DeleteLobbyPlayer(ctx context.Context, arg DeleteLobbyPlayerParams) error {
+	q := New(db.pool)
+	_, err := q.DeleteLobbyPlayer(ctx, arg)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return ErrUserNotFound
+		}
+		return err
+	}
+	return nil
 }
 
 type LobbyInfo struct {
@@ -173,6 +181,30 @@ func (db *Database) GetLobby(ctx context.Context, lobbyID int64) (LobbyInfo, err
 		Countries: lobbyCountries,
 		Players:   lobbyPlayer,
 	}, nil
+}
+
+func (db *Database) GetLobbyCountries(ctx context.Context, lobbyID int64) ([]GetLobbyCountriesRow, error) {
+	q := New(db.pool)
+	lobbyCountries, err := q.GetLobbyCountries(ctx, lobbyID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, ErrLobbyDoesntExists
+		}
+		return nil, err
+	}
+	return lobbyCountries, nil
+}
+
+func (db *Database) GetLobbyPlayers(ctx context.Context, lobbyID int64) ([]GetLobbyPlayersRow, error) {
+	q := New(db.pool)
+	lobbyPlayer, err := q.GetLobbyPlayers(ctx, lobbyID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, ErrLobbyDoesntExists
+		}
+		return nil, err
+	}
+	return lobbyPlayer, nil
 }
 
 func (db *Database) PlayerIsHost(ctx context.Context, playerID uuid.UUID, lobbyID int64) (bool, error) {
@@ -205,8 +237,12 @@ func (db *Database) AddLobbyCountry(ctx context.Context, arg UpsertLobbyCountryP
 
 func (db *Database) DeleteLobbyCountry(ctx context.Context, arg DeleteLobbyCountryParams) error {
 	q := New(db.pool)
-	err := q.DeleteLobbyCountry(ctx, arg)
+	_, err := q.DeleteLobbyCountry(ctx, arg)
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			// TODO:: better error, this could also mean the lobby doesnt exist
+			return ErrCountryDoesntExist
+		}
 		return err
 	}
 	return nil
@@ -216,6 +252,19 @@ func (db *Database) UpdateLobby(ctx context.Context, arg UpdateLobbyParams) erro
 	q := New(db.pool)
 	_, err := q.UpdateLobby(ctx, arg)
 	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (db *Database) UpdateLobbyCountry(ctx context.Context, arg UpdateLobbyCountryParams) error {
+	q := New(db.pool)
+	_, err := q.UpdateLobbyCountry(ctx, arg)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			// TODO:: better error, this could also mean the lobby doesnt exist
+			return ErrCountryDoesntExist
+		}
 		return err
 	}
 	return nil

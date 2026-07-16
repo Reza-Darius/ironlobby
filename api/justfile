@@ -1,11 +1,15 @@
 set dotenv-load := true
 
 run:
-    go run ./cmd/*
+  rmvolume()
+  docker compose up --build
 
 dblogin:
   # we could alternatively expose a port on the pg container to connect to
   docker compose exec db psql -U {{env('POSTGRES_USER')}} -d {{env('POSTGRES_DB')}}
+
+rmvolume:
+  docker volume rm ironlobby_pgdata
 
 test-db:
   sqlc generate

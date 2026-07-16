@@ -16,10 +16,10 @@ import (
 // helper functions for encoding json bodies
 func encode[T any](w http.ResponseWriter, status int, v T) error {
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(v); err != nil {
 		return fmt.Errorf("encode json: %w", err)
 	}
-	w.WriteHeader(status)
 	return nil
 }
 
@@ -65,6 +65,19 @@ func getIDs(r *http.Request) (uuid.UUID, int64, error) {
 		return uuid.UUID{}, 0, err
 	}
 	return playerID, lobbyID, nil
+}
+
+func getLobbyID(r *http.Request) (int64, error) {
+	lobbyID := chi.URLParam(r, "lobby_id")
+	if lobbyID == "" {
+		return  0, errors.New("empty lobby ID")
+	}
+
+	IDInt, err := strconv.ParseInt(lobbyID, 10, 64)
+	if err != nil {
+		return  0, err
+	}
+	return IDInt, nil
 }
 
 // returns IDs if the user id is host for the lobby id

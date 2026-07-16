@@ -47,26 +47,6 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestHealthHandler(t *testing.T) {
-	srv := utils.NewTestServer(t, testApp.routes())
-	defer srv.Close()
-
-	res, err := srv.Client().Get(srv.URL + "/api/health")
-	if err != nil {
-		t.Fatalf("failed to get a response, err: %v", err)
-	}
-
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-
-	rb, err := io.ReadAll(res.Body)
-	defer res.Body.Close()
-	if err != nil {
-		t.Fatalf("failed to read response body, err: %v", err)
-	}
-
-	t.Logf("response body: %v", string(rb))
-}
-
 func NewTestUser(srv *httptest.Server, name string) error {
 	username := struct {
 		Username string
@@ -83,7 +63,7 @@ func NewTestUser(srv *httptest.Server, name string) error {
 		return err
 	}
 
-	if res.StatusCode != http.StatusOK {
+	if res.StatusCode != http.StatusCreated {
 		return fmt.Errorf("failed to create user, status: %v", res.StatusCode)
 	}
 
@@ -110,22 +90,20 @@ func CreateTestLobby(srv *httptest.Server, lobby *database.InsertLobbyParams, co
 		return 0, err
 	}
 
-	if res.StatusCode != http.StatusOK {
+	if res.StatusCode != http.StatusCreated {
 		return 0, fmt.Errorf("failed to create lobby, status: %v", res.StatusCode)
 	}
 
-	var lobbyID int64
-	resBody, err := io.ReadAll(res.Body)
+	var newLobbyRes struct {
+		LobbyID int64 `json:"lobby_id"`
+	}
+
+	err = json.NewDecoder(res.Body).Decode(&newLobbyRes)
 	if err != nil {
 		return 0, err
 	}
 
-	err = json.Unmarshal(resBody, &lobbyID)
-	if err != nil {
-		return 0, err
-	}
-
-	return lobbyID, nil
+	return newLobbyRes.LobbyID, nil
 }
 
 func AddTestCountry(srv *httptest.Server, args *database.UpsertLobbyCountryParams) error {
@@ -141,10 +119,30 @@ func AddTestCountry(srv *httptest.Server, args *database.UpsertLobbyCountryParam
 		return err
 	}
 
-	if res.StatusCode != http.StatusOK {
+	if res.StatusCode != http.StatusCreated {
 		return fmt.Errorf("couldnt add country, code: %v", res.StatusCode)
 	}
 	return nil
+}
+
+func TestHealthHandler(t *testing.T) {
+	srv := utils.NewTestServer(t, testApp.routes())
+	defer srv.Close()
+
+	res, err := srv.Client().Get(srv.URL + "/api/health")
+	if err != nil {
+		t.Fatalf("failed to get a response, err: %v", err)
+	}
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+
+	rb, err := io.ReadAll(res.Body)
+	defer res.Body.Close()
+	if err != nil {
+		t.Fatalf("failed to read response body, err: %v", err)
+	}
+
+	t.Logf("response body: %v", string(rb))
 }
 
 func TestCreateUser(t *testing.T) {
@@ -210,7 +208,7 @@ func TestCreateLobby(t *testing.T) {
 	// create new lobby
 	lobbyID, err := CreateTestLobby(srv, &lobbyCreateBody, nil)
 	if err != nil {
-		t.Fatalf("failed to create lobbs %v", err)
+		t.Fatalf("failed to create lobby %v", err)
 	}
 
 	// fetch newly created lobby
@@ -271,7 +269,7 @@ func TestCreateLobbyWithCountries(t *testing.T) {
 		},
 	})
 	if err != nil {
-		t.Fatalf("failed to create lobbs %v", err)
+		t.Fatalf("failed to create lobby %v", err)
 	}
 
 	// fetch newly created lobby
@@ -303,7 +301,7 @@ func TestCreateLobbyWithCountries(t *testing.T) {
 	assert.Equal(t, 2, len(lobby.Countries), "we added two countries")
 }
 
-func TestJoinLobby(t *testing.T) {
+func TestJoinLeaveLobby(t *testing.T) {
 	srv := utils.NewTestServer(t, testApp.routes())
 	defer srv.Close()
 
@@ -322,11 +320,11 @@ func TestJoinLobby(t *testing.T) {
 
 	lobbyID, err := CreateTestLobby(srv, &lobbyCreateBody, nil)
 	if err != nil {
-		t.Fatalf("failed to create lobbs %v", err)
+		t.Fatalf("failed to create lobby %v", err)
 	}
 
 	// join lobby fail
-	joinParam := database.UpsertPlayerLobbyParams{
+	joinParam := database.UpsertLobbyPlayerParams{
 		CountryTag: "GER",
 	}
 
@@ -366,48 +364,45 @@ func TestJoinLobby(t *testing.T) {
 	}
 
 	// join lobby
-	url = srv.URL + "/api/lobby/" + strconv.Itoa(int(lobbyID)) + "/player"
+	lobbyIDstr := strconv.Itoa(int(lobbyID))
+	url = srv.URL + "/api/lobby/" + lobbyIDstr + "/player"
 	res, err = srv.Client().Post(url, "application/json", bytes.NewBuffer(joinLobbyJSON))
 	defer res.Body.Close()
 	if err != nil {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
 
-	if !assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to join as GER after adding it") {
+	if !assert.Equal(t, http.StatusCreated, res.StatusCode, "we should be able to join as GER after adding it") {
 		t.FailNow()
 	}
 
 	// check lobby
+	var lobbyInfo database.LobbyInfo
+
 	lobby, err := srv.Client().Get(srv.URL + "/api/lobby/" + strconv.Itoa(int(lobbyID)))
 	defer lobby.Body.Close()
 	if err != nil {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
 
-	body, err := io.ReadAll(lobby.Body)
-	if err != nil {
-		t.Fatalf("failed to read body, err: %v", err)
-	}
-
-	var lobbyParsed database.LobbyInfo
-	err = json.Unmarshal(body, &lobbyParsed)
+	err = json.NewDecoder(lobby.Body).Decode(&lobbyInfo)
 	if err != nil {
 		t.Fatalf("failed to unmarshal body, err: %v", err)
 	}
 
-	assert.Equal(t, 2, len(lobbyParsed.Countries))
-	assert.Equal(t, "GER", lobbyParsed.Countries[0].CountryTag)
-	assert.Equal(t, int16(1), lobbyParsed.Countries[0].MaxSlots)
-	assert.Equal(t, "ITA", lobbyParsed.Countries[1].CountryTag)
-	assert.Equal(t, int16(1), lobbyParsed.Countries[1].MaxSlots)
+	assert.Equal(t, 2, len(lobbyInfo.Countries))
+	assert.Equal(t, "GER", lobbyInfo.Countries[0].CountryTag)
+	assert.Equal(t, int16(1), lobbyInfo.Countries[0].MaxSlots)
+	assert.Equal(t, "ITA", lobbyInfo.Countries[1].CountryTag)
+	assert.Equal(t, int16(1), lobbyInfo.Countries[1].MaxSlots)
 
-	assert.Equal(t, 1, len(lobbyParsed.Players))
-	assert.Equal(t, "GER", lobbyParsed.Players[0].CountryTag)
-	assert.Equal(t, username, lobbyParsed.Players[0].PlayerName)
-	assert.Equal(t, lobbyID, lobbyParsed.Players[0].LobbyID)
+	assert.Equal(t, 1, len(lobbyInfo.Players))
+	assert.Equal(t, "GER", lobbyInfo.Players[0].CountryTag)
+	assert.Equal(t, username, lobbyInfo.Players[0].PlayerName)
+	// assert.Equal(t, lobbyID, lobbyInfo.Players[0].LobbyID)
 
 	// swap slots
-	joinParam = database.UpsertPlayerLobbyParams{
+	joinParam = database.UpsertLobbyPlayerParams{
 		CountryTag: "ITA",
 	}
 
@@ -423,7 +418,7 @@ func TestJoinLobby(t *testing.T) {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
 
-	if !assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to swap") {
+	if !assert.Equal(t, http.StatusCreated, res.StatusCode, "we should be able to swap") {
 		t.FailNow()
 	}
 
@@ -434,30 +429,58 @@ func TestJoinLobby(t *testing.T) {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
 
-	body, err = io.ReadAll(lobby.Body)
-	if err != nil {
-		t.Fatalf("failed to read body, err: %v", err)
-	}
-
-	err = json.Unmarshal(body, &lobbyParsed)
+	err = json.NewDecoder(lobby.Body).Decode(&lobbyInfo)
 	if err != nil {
 		t.Fatalf("failed to unmarshal body, err: %v", err)
 	}
 
 	// country list should remain unchanged
-	assert.Equal(t, 2, len(lobbyParsed.Countries))
-	assert.Equal(t, "GER", lobbyParsed.Countries[0].CountryTag)
-	assert.Equal(t, int16(1), lobbyParsed.Countries[0].MaxSlots)
-	assert.Equal(t, "ITA", lobbyParsed.Countries[1].CountryTag)
-	assert.Equal(t, int16(1), lobbyParsed.Countries[1].MaxSlots)
+	assert.Equal(t, 2, len(lobbyInfo.Countries))
+	assert.Equal(t, "GER", lobbyInfo.Countries[0].CountryTag)
+	assert.Equal(t, int16(1), lobbyInfo.Countries[0].MaxSlots)
+	assert.Equal(t, "ITA", lobbyInfo.Countries[1].CountryTag)
+	assert.Equal(t, int16(1), lobbyInfo.Countries[1].MaxSlots)
 
 	// we are ITA now
-	assert.Equal(t, 1, len(lobbyParsed.Players))
-	assert.Equal(t, "ITA", lobbyParsed.Players[0].CountryTag)
-	assert.Equal(t, username, lobbyParsed.Players[0].PlayerName)
-	assert.Equal(t, lobbyID, lobbyParsed.Players[0].LobbyID)
+	assert.Equal(t, 1, len(lobbyInfo.Players))
+	assert.Equal(t, "ITA", lobbyInfo.Players[0].CountryTag)
+	assert.Equal(t, username, lobbyInfo.Players[0].PlayerName)
+	// assert.Equal(t, lobbyID, lobbyInfo.Players[0].LobbyID)
 
-	t.Logf("lobby: %s", body)
+	// leave lobby
+	req, err := http.NewRequest("DELETE", srv.URL+"/api/lobby/"+lobbyIDstr+"/player", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err = srv.Client().Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to delete") {
+		t.FailNow()
+	}
+
+	res, err = srv.Client().Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !assert.Equal(t, http.StatusNotFound, res.StatusCode, "second delete should be 404") {
+		t.FailNow()
+	}
+
+	// check lobby again
+	lobby, err = srv.Client().Get(srv.URL + "/api/lobby/" + lobbyIDstr)
+	defer lobby.Body.Close()
+	if err != nil {
+		t.Fatalf("failed to get a response, err: %v", err)
+	}
+
+	err = json.NewDecoder(lobby.Body).Decode(&lobbyInfo)
+	if err != nil {
+		t.Fatalf("failed to unmarshal body, err: %v", err)
+	}
+
+	assert.Equal(t, 0, len(lobbyInfo.Players), "no player should be left")
 }
 
 func TestUpdateLobby(t *testing.T) {
@@ -510,25 +533,72 @@ func TestUpdateLobby(t *testing.T) {
 	}
 
 	// fetch update lobby
-	lobby, err := srv.Client().Get(srv.URL + "/api/lobby/" + strconv.Itoa(int(lobbyID)))
+	lobbyIDstr := strconv.Itoa(int(lobbyID))
+	var lobbyParsed database.LobbyInfo
+
+	lobby, err := srv.Client().Get(srv.URL + "/api/lobby/" + lobbyIDstr)
 	defer lobby.Body.Close()
 	if err != nil {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
 
-	body, err := io.ReadAll(lobby.Body)
-	if err != nil {
-		t.Fatalf("failed to read body, err: %v", err)
-	}
-
-	var lobbyParsed database.LobbyInfo
-	err = json.Unmarshal(body, &lobbyParsed)
+	err = json.NewDecoder(lobby.Body).Decode(&lobbyParsed)
 	if err != nil {
 		t.Fatalf("failed to unmarshal body, err: %v", err)
 	}
 
 	if !assert.Equal(t, newLobbyName, lobbyParsed.Lobby.LobbyName, "update should work") {
 		t.Fatalf("update didnt work")
+	}
+
+	// add country
+	err = AddTestCountry(srv, &database.UpsertLobbyCountryParams{
+		LobbyID:    lobbyID,
+		CountryTag: "GER",
+		MaxSlots:   1,
+	})
+	if err != nil {
+		t.Fatalf("failed to add country, err: %v", err)
+	}
+
+	// update country to two slots
+	reqBody := database.UpdateLobbyCountryParams{
+		MaxSlots: 2,
+	}
+	out, err = json.Marshal(reqBody)
+	if err != nil {
+		t.Fatalf("failed to marshal update lobby country params")
+	}
+
+	req, err = http.NewRequest("PATCH", srv.URL+"/api/lobby/"+lobbyIDstr+"/country/GER", bytes.NewBuffer(out))
+	if err != nil {
+		t.Fatalf("failed to create request err: %v", err)
+	}
+
+	resp, err := srv.Client().Do(req)
+	defer lobby.Body.Close()
+	if err != nil {
+		t.Fatalf("failed to get a response, err: %v", err)
+	}
+
+	if !assert.Equal(t, http.StatusOK, resp.StatusCode, "country update should work") {
+		t.Fatalf("country update didnt work")
+	}
+
+	// check lobby again
+	lobby, err = srv.Client().Get(srv.URL + "/api/lobby/" + lobbyIDstr)
+	defer lobby.Body.Close()
+	if err != nil {
+		t.Fatalf("failed to get a response, err: %v", err)
+	}
+
+	err = json.NewDecoder(lobby.Body).Decode(&lobbyParsed)
+	if err != nil {
+		t.Fatalf("failed to unmarshal body, err: %v", err)
+	}
+
+	if !assert.Equal(t, int16(2), lobbyParsed.Countries[0].MaxSlots, "we should see max slots 2 now after update") {
+		t.Fatalf("we should see max slots 2 now after update")
 	}
 }
 
@@ -571,23 +641,18 @@ func TestDeleteLobby(t *testing.T) {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
 
-	body, err := io.ReadAll(lobby.Body)
-	if err != nil {
-		t.Fatalf("failed to read body, err: %v", err)
-	}
-
-	var lobbyParsed database.LobbyInfo
-	err = json.Unmarshal(body, &lobbyParsed)
+	var lobbyInfo database.LobbyInfo
+	err = json.NewDecoder(lobby.Body).Decode(&lobbyInfo)
 	if err != nil {
 		t.Fatalf("failed to unmarshal body, err: %v", err)
 	}
 
-	if !assert.Equal(t, 1, len(lobbyParsed.Countries), "there should be one country") {
+	if !assert.Equal(t, 1, len(lobbyInfo.Countries), "there should be one country") {
 		t.Fatalf("adding country didnt work")
 	}
 
 	// delete GER
-	req, err := http.NewRequest("DELETE", srv.URL+"/api/lobby/"+lobbyIDstr+"/country/GER", bytes.NewBuffer([]byte{}))
+	req, err := http.NewRequest("DELETE", srv.URL+"/api/lobby/"+lobbyIDstr+"/country/GER", nil)
 	if err != nil {
 		t.Fatalf("failed to create request, err: %v", err)
 	}
@@ -602,17 +667,22 @@ func TestDeleteLobby(t *testing.T) {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
 
-	body, err = io.ReadAll(lobby.Body)
-	if err != nil {
-		t.Fatalf("failed to read body, err: %v", err)
-	}
-
-	err = json.Unmarshal(body, &lobbyParsed)
+	err = json.NewDecoder(lobby.Body).Decode(&lobbyInfo)
 	if err != nil {
 		t.Fatalf("failed to unmarshal body, err: %v", err)
 	}
 
-	if !assert.Equal(t, 0, len(lobbyParsed.Countries), "there should be no countries remaining") {
+	if !assert.Equal(t, 0, len(lobbyInfo.Countries), "there should be no countries remaining") {
 		t.Fatalf("delete didnt work")
+	}
+
+	// second delete should return 404
+	res, err := srv.Client().Do(req)
+	if err != nil {
+		t.Fatalf("failed to send request, err: %v", err)
+	}
+
+	if !assert.Equal(t, http.StatusNotFound, res.StatusCode, "second delete should return error") {
+		t.Fatalf("second delete should return error")
 	}
 }

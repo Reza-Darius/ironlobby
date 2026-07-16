@@ -6,7 +6,6 @@ WHERE id = $1;
 -- name: GetLobbyPlayers :many
 SELECT
     player.player_name,
-    player_lobby.lobby_id,
     countries.country_tag
 FROM player_lobby
 JOIN countries ON player_lobby.country_id = countries.id
@@ -44,12 +43,19 @@ ON CONFLICT (lobby_id, country_id)
 DO UPDATE SET max_slots = excluded.max_slots
 RETURNING *;
 
--- name: DeleteLobbyCountry :exec
+-- name: DeleteLobbyCountry :one
 DELETE FROM lobby_countries
 WHERE lobby_id = $1 AND country_id = (
     SELECT id FROM countries
     WHERE country_tag = $2
-);
+) RETURNING *;
+
+-- name: UpdateLobbyCountry :one
+UPDATE lobby_countries SET max_slots = $3
+WHERE lobby_id = $1 AND country_id = (
+    SELECT id FROM countries
+    WHERE country_tag = $2
+) RETURNING *;
 
 -- name: OpenLobbies :one
 SELECT COUNT(*) FROM lobby
@@ -83,22 +89,23 @@ WHERE
     )
     AND player_id != $3;
 
--- name: UpsertPlayerLobby :one
-INSERT INTO player_lobby (player_id, lobby_id, country_id)
+-- name: UpsertLobbyPlayer :one
+INSERT INTO player_lobby (player_id, lobby_id, country_id, note)
 SELECT
     $1,
     $2,
-    id
+    id,
+    $4
 FROM countries
 WHERE country_tag = $3
--- when the player is already in the lobby, we just update the tag
+-- when the player is already in the lobby, we just update the tag and note
 ON CONFLICT (lobby_id, player_id)
-DO UPDATE SET country_id = excluded.country_id
+DO UPDATE SET country_id = excluded.country_id, note = excluded.note
 RETURNING *;
 
--- name: UnassignPlayer :exec
+-- name: DeleteLobbyPlayer :one
 DELETE FROM player_lobby
-WHERE lobby_id = $1 AND player_id = $2;
+WHERE lobby_id = $1 AND player_id = $2 RETURNING *;
 
 -- name: UpdateLobby :one
 UPDATE lobby

@@ -164,7 +164,7 @@ type LobbyInfo struct {
 
 func (db *Database) GetLobby(ctx context.Context, lobbyID int64) (LobbyInfo, error) {
 	q := New(db.pool)
-	lobby, err := q.GetLobbyInfo(ctx, lobbyID)
+	lobby, err := q.GetLobby(ctx, lobbyID)
 	if err != nil {
 		return LobbyInfo{}, err
 	}

@@ -13,7 +13,10 @@ import (
 // domain errors to not expose PG internals
 var (
 	ErrUserNotFound          = errors.New("user not found")
+
 	ErrLobbyExists           = errors.New("lobby already exists")
+	ErrLobbyDoesntExists     = errors.New("lobby doesnt exist")
+
 	ErrUserExists            = errors.New("user already exists")
 	ErrNationSlotsFull       = errors.New("the requested nation's slots are full")
 	ErrNationNotAvail        = errors.New("the requested nation is not available")
@@ -178,6 +181,30 @@ func (db *Database) GetLobby(ctx context.Context, lobbyID int64) (LobbyInfo, err
 		Countries: lobbyCountries,
 		Players:   lobbyPlayer,
 	}, nil
+}
+
+func (db *Database) GetLobbyCountries(ctx context.Context, lobbyID int64) ([]GetLobbyCountriesRow, error) {
+	q := New(db.pool)
+	lobbyCountries, err := q.GetLobbyCountries(ctx, lobbyID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, ErrLobbyDoesntExists
+		}
+		return nil, err
+	}
+	return lobbyCountries, nil
+}
+
+func (db *Database) GetLobbyPlayers(ctx context.Context, lobbyID int64) ([]GetLobbyPlayersRow, error) {
+	q := New(db.pool)
+	lobbyPlayer, err := q.GetLobbyPlayers(ctx, lobbyID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, ErrLobbyDoesntExists
+		}
+		return nil, err
+	}
+	return lobbyPlayer, nil
 }
 
 func (db *Database) PlayerIsHost(ctx context.Context, playerID uuid.UUID, lobbyID int64) (bool, error) {

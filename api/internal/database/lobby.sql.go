@@ -155,7 +155,6 @@ func (q *Queries) GetLobbyInfo(ctx context.Context, id int64) (Lobby, error) {
 const getLobbyPlayers = `-- name: GetLobbyPlayers :many
 SELECT
     player.player_name,
-    player_lobby.lobby_id,
     countries.country_tag
 FROM player_lobby
 JOIN countries ON player_lobby.country_id = countries.id
@@ -165,7 +164,6 @@ WHERE player_lobby.lobby_id = $1
 
 type GetLobbyPlayersRow struct {
 	PlayerName string `json:"player_name"`
-	LobbyID    int64  `json:"lobby_id"`
 	CountryTag string `json:"country_tag"`
 }
 
@@ -178,7 +176,7 @@ func (q *Queries) GetLobbyPlayers(ctx context.Context, lobbyID int64) ([]GetLobb
 	var items []GetLobbyPlayersRow
 	for rows.Next() {
 		var i GetLobbyPlayersRow
-		if err := rows.Scan(&i.PlayerName, &i.LobbyID, &i.CountryTag); err != nil {
+		if err := rows.Scan(&i.PlayerName, &i.CountryTag); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

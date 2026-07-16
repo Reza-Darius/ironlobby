@@ -6,7 +6,6 @@ WHERE id = $1;
 -- name: GetLobbyPlayers :many
 SELECT
     player.player_name,
-    player_lobby.lobby_id,
     countries.country_tag
 FROM player_lobby
 JOIN countries ON player_lobby.country_id = countries.id

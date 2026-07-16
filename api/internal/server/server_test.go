@@ -47,26 +47,6 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestHealthHandler(t *testing.T) {
-	srv := utils.NewTestServer(t, testApp.routes())
-	defer srv.Close()
-
-	res, err := srv.Client().Get(srv.URL + "/api/health")
-	if err != nil {
-		t.Fatalf("failed to get a response, err: %v", err)
-	}
-
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-
-	rb, err := io.ReadAll(res.Body)
-	defer res.Body.Close()
-	if err != nil {
-		t.Fatalf("failed to read response body, err: %v", err)
-	}
-
-	t.Logf("response body: %v", string(rb))
-}
-
 func NewTestUser(srv *httptest.Server, name string) error {
 	username := struct {
 		Username string
@@ -143,6 +123,26 @@ func AddTestCountry(srv *httptest.Server, args *database.UpsertLobbyCountryParam
 		return fmt.Errorf("couldnt add country, code: %v", res.StatusCode)
 	}
 	return nil
+}
+
+func TestHealthHandler(t *testing.T) {
+	srv := utils.NewTestServer(t, testApp.routes())
+	defer srv.Close()
+
+	res, err := srv.Client().Get(srv.URL + "/api/health")
+	if err != nil {
+		t.Fatalf("failed to get a response, err: %v", err)
+	}
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+
+	rb, err := io.ReadAll(res.Body)
+	defer res.Body.Close()
+	if err != nil {
+		t.Fatalf("failed to read response body, err: %v", err)
+	}
+
+	t.Logf("response body: %v", string(rb))
 }
 
 func TestCreateUser(t *testing.T) {
@@ -301,7 +301,7 @@ func TestCreateLobbyWithCountries(t *testing.T) {
 	assert.Equal(t, 2, len(lobby.Countries), "we added two countries")
 }
 
-func TestJoinLobby(t *testing.T) {
+func TestJoinLeaveLobby(t *testing.T) {
 	srv := utils.NewTestServer(t, testApp.routes())
 	defer srv.Close()
 
@@ -570,7 +570,7 @@ func TestUpdateLobby(t *testing.T) {
 		t.Fatalf("failed to marshal update lobby country params")
 	}
 
-	req, err = http.NewRequest("PATCH", srv.URL+"/api/lobby/"+lobbyIDstr+"/GER", bytes.NewBuffer(out))
+	req, err = http.NewRequest("PATCH", srv.URL+"/api/lobby/"+lobbyIDstr+"/country/GER", bytes.NewBuffer(out))
 	if err != nil {
 		t.Fatalf("failed to create request err: %v", err)
 	}

@@ -67,6 +67,19 @@ func getIDs(r *http.Request) (uuid.UUID, int64, error) {
 	return playerID, lobbyID, nil
 }
 
+func getLobbyID(r *http.Request) (int64, error) {
+	lobbyID := chi.URLParam(r, "lobby_id")
+	if lobbyID == "" {
+		return  0, errors.New("empty lobby ID")
+	}
+
+	IDInt, err := strconv.ParseInt(lobbyID, 10, 64)
+	if err != nil {
+		return  0, err
+	}
+	return IDInt, nil
+}
+
 // returns IDs if the user id is host for the lobby id
 func checkHost(db *database.Database, w http.ResponseWriter, r *http.Request) (uuid.UUID, int64, error) {
 	playerID, lobbyID, err := getIDs(r)

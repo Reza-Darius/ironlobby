@@ -83,7 +83,7 @@ func NewTestUser(srv *httptest.Server, name string) error {
 		return err
 	}
 
-	if res.StatusCode != http.StatusOK {
+	if res.StatusCode != http.StatusCreated {
 		return fmt.Errorf("failed to create user, status: %v", res.StatusCode)
 	}
 
@@ -110,22 +110,20 @@ func CreateTestLobby(srv *httptest.Server, lobby *database.InsertLobbyParams, co
 		return 0, err
 	}
 
-	if res.StatusCode != http.StatusOK {
+	if res.StatusCode != http.StatusCreated {
 		return 0, fmt.Errorf("failed to create lobby, status: %v", res.StatusCode)
 	}
 
-	var lobbyID int64
-	resBody, err := io.ReadAll(res.Body)
+	var newLobbyRes struct {
+		LobbyID int64 `json:"lobby_id"`
+	}
+
+	err = json.NewDecoder(res.Body).Decode(&newLobbyRes)
 	if err != nil {
 		return 0, err
 	}
 
-	err = json.Unmarshal(resBody, &lobbyID)
-	if err != nil {
-		return 0, err
-	}
-
-	return lobbyID, nil
+	return newLobbyRes.LobbyID, nil
 }
 
 func AddTestCountry(srv *httptest.Server, args *database.UpsertLobbyCountryParams) error {
@@ -141,7 +139,7 @@ func AddTestCountry(srv *httptest.Server, args *database.UpsertLobbyCountryParam
 		return err
 	}
 
-	if res.StatusCode != http.StatusOK {
+	if res.StatusCode != http.StatusCreated {
 		return fmt.Errorf("couldnt add country, code: %v", res.StatusCode)
 	}
 	return nil
@@ -210,7 +208,7 @@ func TestCreateLobby(t *testing.T) {
 	// create new lobby
 	lobbyID, err := CreateTestLobby(srv, &lobbyCreateBody, nil)
 	if err != nil {
-		t.Fatalf("failed to create lobbs %v", err)
+		t.Fatalf("failed to create lobby %v", err)
 	}
 
 	// fetch newly created lobby
@@ -271,7 +269,7 @@ func TestCreateLobbyWithCountries(t *testing.T) {
 		},
 	})
 	if err != nil {
-		t.Fatalf("failed to create lobbs %v", err)
+		t.Fatalf("failed to create lobby %v", err)
 	}
 
 	// fetch newly created lobby
@@ -322,11 +320,11 @@ func TestJoinLobby(t *testing.T) {
 
 	lobbyID, err := CreateTestLobby(srv, &lobbyCreateBody, nil)
 	if err != nil {
-		t.Fatalf("failed to create lobbs %v", err)
+		t.Fatalf("failed to create lobby %v", err)
 	}
 
 	// join lobby fail
-	joinParam := database.UpsertPlayerLobbyParams{
+	joinParam := database.UpsertLobbyPlayerParams{
 		CountryTag: "GER",
 	}
 
@@ -373,7 +371,7 @@ func TestJoinLobby(t *testing.T) {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
 
-	if !assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to join as GER after adding it") {
+	if !assert.Equal(t, http.StatusCreated, res.StatusCode, "we should be able to join as GER after adding it") {
 		t.FailNow()
 	}
 
@@ -407,7 +405,7 @@ func TestJoinLobby(t *testing.T) {
 	assert.Equal(t, lobbyID, lobbyParsed.Players[0].LobbyID)
 
 	// swap slots
-	joinParam = database.UpsertPlayerLobbyParams{
+	joinParam = database.UpsertLobbyPlayerParams{
 		CountryTag: "ITA",
 	}
 
@@ -423,7 +421,7 @@ func TestJoinLobby(t *testing.T) {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
 
-	if !assert.Equal(t, http.StatusOK, res.StatusCode, "we should be able to swap") {
+	if !assert.Equal(t, http.StatusCreated, res.StatusCode, "we should be able to swap") {
 		t.FailNow()
 	}
 
@@ -587,7 +585,7 @@ func TestDeleteLobby(t *testing.T) {
 	}
 
 	// delete GER
-	req, err := http.NewRequest("DELETE", srv.URL+"/api/lobby/"+lobbyIDstr+"/country/GER", bytes.NewBuffer([]byte{}))
+	req, err := http.NewRequest("DELETE", srv.URL+"/api/lobby/"+lobbyIDstr+"/country/GER", nil)
 	if err != nil {
 		t.Fatalf("failed to create request, err: %v", err)
 	}
@@ -614,5 +612,15 @@ func TestDeleteLobby(t *testing.T) {
 
 	if !assert.Equal(t, 0, len(lobbyParsed.Countries), "there should be no countries remaining") {
 		t.Fatalf("delete didnt work")
+	}
+
+	// second delete should return 404
+	res, err := srv.Client().Do(req)
+	if err != nil {
+		t.Fatalf("failed to send request, err: %v", err)
+	}
+
+	if !assert.Equal(t, http.StatusNotFound, res.StatusCode, "second delete should return error") {
+		t.Fatalf("second delete should return error")
 	}
 }

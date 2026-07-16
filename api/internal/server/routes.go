@@ -22,21 +22,27 @@ func (app *Application) routes() *chi.Mux {
 	r.Route("/api", func(r chi.Router) {
 		// unauthorized routes
 		r.Get("/health", app.healthcheck)
-		r.Get("/country", app.getCountries)
+		r.Get("/countries", app.getCountries)
 		r.Get("/lobby/{lobby_id}", app.getLobby)
 		r.Post("/user", app.newUser)
 
-		// authorized routes
+		// authorized routes, require a user name with a corresponding cookie with the user's id
 		r.Group(func(r chi.Router) {
 			r.Use(app.AuthSession)
+
+			// host actions
+			
 			r.Post("/lobby", app.newLobby)
 			r.Patch("/lobby/{lobby_id}", app.updateLobby)
 			r.Post("/lobby/{lobby_id}/country", app.addLobbyCountry)
 			r.Delete("/lobby/{lobby_id}/country/{country_tag}", app.deleteLobbyCountry)
-			// r.Put("lobby/{lobby_id}/{country_tag}", app.editLobbyCountry)
+			r.Patch("/lobby/{lobby_id}/{country_tag}", app.updateLobbyCountry)
 
-			r.Post("/lobby/{lobby_id}/player", app.joinLobby)
-			// r.Patch("/lobby/{lobby_id}/player", app.editPlayerSlot)
+			// player actions
+			
+			// idempotent route, which can also be used for updating the user, like swapping tags
+			r.Post("/lobby/{lobby_id}/player", app.joinLobby) 
+			r.Delete("/lobby/{lobby_id}/player", app.leaveLobby)
 		})
 	})
 

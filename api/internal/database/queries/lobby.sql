@@ -1,4 +1,4 @@
--- name: GetLobbyInfo :one
+-- name: GetLobby :one
 SELECT *
 FROM lobby
 WHERE id = $1;
@@ -6,8 +6,10 @@ WHERE id = $1;
 -- name: GetLobbyPlayers :many
 SELECT
     player.player_name,
-    countries.country_tag
-FROM player_lobby
+    countries.country_tag,
+    pl.note,
+    pl.joined_at
+FROM player_lobby AS pl
 JOIN countries ON player_lobby.country_id = countries.id
 JOIN player ON player_lobby.player_id = player.id
 WHERE player_lobby.lobby_id = $1;

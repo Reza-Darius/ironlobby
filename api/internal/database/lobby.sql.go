@@ -80,6 +80,27 @@ func (q *Queries) DeleteLobbyPlayer(ctx context.Context, arg DeleteLobbyPlayerPa
 	return i, err
 }
 
+const getLobby = `-- name: GetLobby :one
+SELECT id, host_player, lobby_name, starts_at, gamemode, ingame_id, description
+FROM lobby
+WHERE id = $1
+`
+
+func (q *Queries) GetLobby(ctx context.Context, id int64) (Lobby, error) {
+	row := q.db.QueryRow(ctx, getLobby, id)
+	var i Lobby
+	err := row.Scan(
+		&i.ID,
+		&i.HostPlayer,
+		&i.LobbyName,
+		&i.StartsAt,
+		&i.Gamemode,
+		&i.IngameID,
+		&i.Description,
+	)
+	return i, err
+}
+
 const getLobbyCountries = `-- name: GetLobbyCountries :many
 SELECT
     countries.country_tag,
@@ -131,40 +152,23 @@ func (q *Queries) GetLobbyFromHostID(ctx context.Context, arg GetLobbyFromHostID
 	return id, err
 }
 
-const getLobbyInfo = `-- name: GetLobbyInfo :one
-SELECT id, host_player, lobby_name, starts_at, gamemode, ingame_id, description
-FROM lobby
-WHERE id = $1
-`
-
-func (q *Queries) GetLobbyInfo(ctx context.Context, id int64) (Lobby, error) {
-	row := q.db.QueryRow(ctx, getLobbyInfo, id)
-	var i Lobby
-	err := row.Scan(
-		&i.ID,
-		&i.HostPlayer,
-		&i.LobbyName,
-		&i.StartsAt,
-		&i.Gamemode,
-		&i.IngameID,
-		&i.Description,
-	)
-	return i, err
-}
-
 const getLobbyPlayers = `-- name: GetLobbyPlayers :many
 SELECT
     player.player_name,
-    countries.country_tag
-FROM player_lobby
+    countries.country_tag,
+    pl.note,
+    pl.joined_at
+FROM player_lobby AS pl
 JOIN countries ON player_lobby.country_id = countries.id
 JOIN player ON player_lobby.player_id = player.id
 WHERE player_lobby.lobby_id = $1
 `
 
 type GetLobbyPlayersRow struct {
-	PlayerName string `json:"player_name"`
-	CountryTag string `json:"country_tag"`
+	PlayerName string      `json:"player_name"`
+	CountryTag string      `json:"country_tag"`
+	Note       pgtype.Text `json:"note"`
+	JoinedAt   time.Time   `json:"joined_at"`
 }
 
 func (q *Queries) GetLobbyPlayers(ctx context.Context, lobbyID int64) ([]GetLobbyPlayersRow, error) {
@@ -176,7 +180,12 @@ func (q *Queries) GetLobbyPlayers(ctx context.Context, lobbyID int64) ([]GetLobb
 	var items []GetLobbyPlayersRow
 	for rows.Next() {
 		var i GetLobbyPlayersRow
-		if err := rows.Scan(&i.PlayerName, &i.CountryTag); err != nil {
+		if err := rows.Scan(
+			&i.PlayerName,
+			&i.CountryTag,
+			&i.Note,
+			&i.JoinedAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

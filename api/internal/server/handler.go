@@ -363,6 +363,7 @@ func (app *Application) updateLobbyCountry(w http.ResponseWriter, r *http.Reques
 	}
 
 	args.LobbyID = lobbyID
+	args.CountryTag = tag
 
 	err = app.db.UpdateLobbyCountry(ctx, args)
 	if err != nil {

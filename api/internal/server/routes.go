@@ -10,8 +10,12 @@ import (
 func (app *Application) routes() *chi.Mux {
 	r := chi.NewRouter()
 
+	// for colored logging in docker
+	middleware.IsTTY = true
+	
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
+	r.Use(middleware.Compress(5))
 	r.Use(secureHeaders)
 
 	if app.config.DebugCors {
@@ -35,7 +39,7 @@ func (app *Application) routes() *chi.Mux {
 			r.Use(app.AuthSession)
 
 			// host actions
-			
+
 			r.Post("/lobby", app.newLobby)
 			r.Patch("/lobby/{lobby_id}", app.updateLobby)
 
@@ -44,9 +48,9 @@ func (app *Application) routes() *chi.Mux {
 			r.Patch("/lobby/{lobby_id}/country/{country_tag}", app.updateLobbyCountry)
 
 			// player actions
-			
+
 			// idempotent route, which can also be used for updating the user, like swapping tags
-			r.Post("/lobby/{lobby_id}/player", app.joinLobby) 
+			r.Post("/lobby/{lobby_id}/player", app.joinLobby)
 			r.Delete("/lobby/{lobby_id}/player", app.leaveLobby)
 		})
 	})

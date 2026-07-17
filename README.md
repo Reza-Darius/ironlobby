@@ -24,62 +24,26 @@ preference for a certain nation
 
 ## Implementation
 
-## API routes
+### How to run
+
+requires docker
 
 ```
-
-UNAUTHORIZED ROUTES:
-
-GET /{lobby_id} -> ruft Lobby auf
-
-POST /user -> register new user
-json "username":"{user_input}"
-
-AUTHORIZED ROUTES:
-
-POST /lobby -> neue lobby erstellen
-body:
-type InsertLobbyParams struct {
-        LobbyName  string    `json:"lobby_name"`
-        StartsAt   time.Time `json:"starts_at"`
-        Gamemode   Gamemode  `json:"gamemode"`
-}
-
-Host actions:
-
-PUT /{lobby_id} -> lobby bearbeiten
-body:
-type InsertLobbyParams struct {
-        LobbyName  string    `json:"lobby_name"`
-        StartsAt   time.Time `json:"starts_at"`
-        Gamemode   Gamemode  `json:"gamemode"`
-}
-
-DELETE /{lobby_id} -> lobby löschen
-
-Player actions:
-
-POST /{lobby_id} -> lobby joinen
-body:
-type AssignPlayerToLobbyParams struct {
-        CountryTag string    `json:"country_tag"`
-}
-
-PUT /edit/{lobby_id} -> nation wechseln/lobby leaven?
+git clone https://github.com/Reza-Darius/ironlobby
+docker compose up
 ```
-### Running the App
 
-Run with `docker compose up`
-
-`.env` format for configuration:
+iron Lobby is configured via an `.env` file with the following values:
 
 ```
-# addr the app listens on inside the container
 PORT=3000
+DEBUG_CORS=true
 
-MIGRATION_PATH=./migrations
-
-POSTGRES_USER=schnib-user
-POSTGRES_PASSWORD=mypassword
-POSTGRES_DB=schnib-db
+POSTGRES_USER=ironlobby-user
+POSTGRES_PASSWORD=oberkommando
+POSTGRES_DB=ironlobby-db
 ```
+
+### API routes
+
+look up `routes.go` to see the API routes

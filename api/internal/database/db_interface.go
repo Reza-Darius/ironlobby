@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
@@ -12,10 +13,10 @@ import (
 
 // domain errors to not expose PG internals
 var (
-	ErrUserNotFound          = errors.New("user not found")
+	ErrUserNotFound = errors.New("user not found")
 
-	ErrLobbyExists           = errors.New("lobby already exists")
-	ErrLobbyDoesntExists     = errors.New("lobby doesnt exist")
+	ErrLobbyExists       = errors.New("lobby already exists")
+	ErrLobbyDoesntExists = errors.New("lobby doesnt exist")
 
 	ErrUserExists            = errors.New("user already exists")
 	ErrNationSlotsFull       = errors.New("the requested nation's slots are full")
@@ -166,16 +167,22 @@ func (db *Database) GetLobby(ctx context.Context, lobbyID int64) (LobbyInfo, err
 	q := New(db.pool)
 	lobby, err := q.GetLobby(ctx, lobbyID)
 	if err != nil {
-		return LobbyInfo{}, err
+		if err == pgx.ErrNoRows {
+			return LobbyInfo{}, ErrLobbyDoesntExists
+		}
+		return LobbyInfo{}, fmt.Errorf("error when fetching lobby: %v: %w", lobbyID, err)
 	}
+
 	lobbyCountries, err := q.GetLobbyCountries(ctx, lobbyID)
 	if err != nil {
-		return LobbyInfo{}, err
+		return LobbyInfo{}, fmt.Errorf("error when fetching lobby %v countries: %w", lobbyID, err)
 	}
+
 	lobbyPlayer, err := q.GetLobbyPlayers(ctx, lobbyID)
 	if err != nil {
-		return LobbyInfo{}, err
+		return LobbyInfo{}, fmt.Errorf("error when fetching lobby %v players: %w", lobbyID, err)
 	}
+
 	return LobbyInfo{
 		Lobby:     lobby,
 		Countries: lobbyCountries,

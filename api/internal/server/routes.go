@@ -12,7 +12,7 @@ func (app *Application) routes() *chi.Mux {
 
 	// for colored logging in docker
 	middleware.IsTTY = true
-	
+
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Compress(5))
@@ -38,20 +38,22 @@ func (app *Application) routes() *chi.Mux {
 		r.Group(func(r chi.Router) {
 			r.Use(app.AuthSession)
 
-			// host actions
+			r.Route("/lobby", func(r chi.Router) {
+				// host actions
 
-			r.Post("/lobby", app.newLobby)
-			r.Patch("/lobby/{lobby_id}", app.updateLobby)
+				r.Post("/", app.newLobby)
+				r.Patch("/{lobby_id}", app.updateLobby)
 
-			r.Post("/lobby/{lobby_id}/country", app.addLobbyCountry)
-			r.Delete("/lobby/{lobby_id}/country/{country_tag}", app.deleteLobbyCountry)
-			r.Patch("/lobby/{lobby_id}/country/{country_tag}", app.updateLobbyCountry)
+				r.Post("/{lobby_id}/country", app.addLobbyCountry)
+				r.Delete("/{lobby_id}/country/{country_tag}", app.deleteLobbyCountry)
+				r.Patch("/{lobby_id}/country/{country_tag}", app.updateLobbyCountry)
 
-			// player actions
+				// player actions
 
-			// idempotent route, which can also be used for updating the user, like swapping tags
-			r.Post("/lobby/{lobby_id}/player", app.joinLobby)
-			r.Delete("/lobby/{lobby_id}/player", app.leaveLobby)
+				// idempotent route, which can also be used for updating the user, like swapping tags
+				r.Post("/{lobby_id}/player", app.joinLobby)
+				r.Delete("/{lobby_id}/player", app.leaveLobby)
+			})
 		})
 	})
 

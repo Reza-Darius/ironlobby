@@ -159,9 +159,9 @@ SELECT
     pl.note,
     pl.joined_at
 FROM player_lobby AS pl
-JOIN countries ON player_lobby.country_id = countries.id
-JOIN player ON player_lobby.player_id = player.id
-WHERE player_lobby.lobby_id = $1
+JOIN countries ON pl.country_id = countries.id
+JOIN player ON pl.player_id = player.id
+WHERE pl.lobby_id = $1
 `
 
 type GetLobbyPlayersRow struct {

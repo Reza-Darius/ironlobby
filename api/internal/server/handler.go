@@ -92,7 +92,7 @@ func (app *Application) getLobby(w http.ResponseWriter, r *http.Request) {
 
 		default:
 			{
-				slog.Error("error when fetching lobby", "err", err)
+				slog.Error("failed to get lobby", "err", err, "lobby", lobbyID)
 				http.Error(w, "internal server error", http.StatusInternalServerError)
 			}
 		}

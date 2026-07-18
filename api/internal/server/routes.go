@@ -20,7 +20,7 @@ func (app *Application) routes() *chi.Mux {
 
 	if app.config.DebugCors {
 		slog.Info("CORS debug enabled")
-		r.Use(CorsDebug)
+		r.Use(corsDebug)
 	}
 
 	r.Route("/api", func(r chi.Router) {
@@ -30,9 +30,11 @@ func (app *Application) routes() *chi.Mux {
 		r.Get("/health", app.healthcheck)
 		r.Get("/countries", app.getCountries)
 
-		r.Get("/lobby/{lobby_id}", app.getLobby)
-		r.Get("/lobby/{lobby_id}/country", app.getLobbyCountries)
-		r.Get("/lobby/{lobby_id}/player", app.getLobbyPlayers)
+		r.Route("/lobby/{lobby_id}", func(r chi.Router) {
+			r.Get("/", app.getLobby)
+			r.Get("/country", app.getLobbyCountries)
+			r.Get("/player", app.getLobbyPlayers)
+		})
 
 		// authorized routes, require a user name with a corresponding cookie with the user's id
 		r.Group(func(r chi.Router) {

@@ -163,7 +163,7 @@ type LobbyInfo struct {
 	Players   []GetLobbyPlayersRow   `json:"players"`
 }
 
-func (db *Database) GetLobby(ctx context.Context, lobbyID int64) (LobbyInfo, error) {
+func (db *Database) GetLobbyInfo(ctx context.Context, lobbyID int64) (LobbyInfo, error) {
 	q := New(db.pool)
 	lobby, err := q.GetLobby(ctx, lobbyID)
 	if err != nil {

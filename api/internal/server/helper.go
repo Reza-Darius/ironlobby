@@ -32,27 +32,11 @@ func decode[T any](r *http.Request) (T, error) {
 	return v, nil
 }
 
-// GetPlayerID get player id from request context
-func GetPlayerID(r *http.Request) uuid.UUID {
-	return r.Context().Value(CookieName).(uuid.UUID)
-}
-
-func secureHeaders(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Security-Policy",
-			"default-src 'self'; style-src 'self' fonts.googleapis.com; font-src fonts.gstatic.com")
-		w.Header().Set("Referrer-Policy", "origin-when-cross-origin")
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("X-Frame-Options", "deny")
-		w.Header().Set("X-XSS-Protection", "0")
-		next.ServeHTTP(w, r)
-	})
-}
 
 // errors if it cant retrieve both lobby id and player id
 func getIDs(r *http.Request) (uuid.UUID, int64, error) {
 	// player ID from cookie
-	playerID := GetPlayerID(r)
+	playerID := getUserID(r)
 
 	// lobby ID from url path
 	lID := chi.URLParam(r, "lobby_id")
@@ -67,15 +51,20 @@ func getIDs(r *http.Request) (uuid.UUID, int64, error) {
 	return playerID, lobbyID, nil
 }
 
+// getUserID get player id from request context
+func getUserID(r *http.Request) uuid.UUID {
+	return r.Context().Value(UserIDCookie).(uuid.UUID)
+}
+
 func getLobbyID(r *http.Request) (int64, error) {
 	lobbyID := chi.URLParam(r, "lobby_id")
 	if lobbyID == "" {
-		return  0, errors.New("empty lobby ID")
+		return 0, errors.New("empty lobby ID")
 	}
 
 	IDInt, err := strconv.ParseInt(lobbyID, 10, 64)
 	if err != nil {
-		return  0, err
+		return 0, err
 	}
 	return IDInt, nil
 }

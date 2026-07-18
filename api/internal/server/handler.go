@@ -82,7 +82,7 @@ func (app *Application) getLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lobby, err := app.db.GetLobby(r.Context(), lobbyID)
+	lobby, err := app.db.GetLobbyInfo(r.Context(), lobbyID)
 	if err != nil {
 		switch err {
 		case database.ErrLobbyDoesntExists:
@@ -180,7 +180,7 @@ func (app *Application) newLobby(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// we get the hostID from the cookie
-	lobbyParams.Lobby.HostPlayer = GetPlayerID(r)
+	lobbyParams.Lobby.HostPlayer = getUserID(r)
 
 	lobby, err := app.db.NewLobby(r.Context(), lobbyParams)
 	if err != nil {

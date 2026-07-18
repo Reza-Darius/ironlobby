@@ -9,12 +9,12 @@ import (
 	"github.com/google/uuid"
 )
 
-const CookieName = "username"
+const UserIDCookie = "userID"
 
 func (app *Application) AuthSession(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		{
-			cookie, err := r.Cookie(CookieName)
+			cookie, err := r.Cookie(UserIDCookie)
 			if err != nil || cookie.Value == "" {
 				if err == http.ErrNoCookie {
 					log.Println("no cookie detected, redirecting")
@@ -44,7 +44,7 @@ func (app *Application) AuthSession(next http.Handler) http.Handler {
 			}
 
 			// create new context with attached key value pair, inherit parent context (request)
-			ctx := context.WithValue(r.Context(), CookieName, intUUID)
+			ctx := context.WithValue(r.Context(), UserIDCookie, intUUID)
 
 			// attach context to next handler
 			next.ServeHTTP(w, r.WithContext(ctx))
@@ -54,7 +54,7 @@ func (app *Application) AuthSession(next http.Handler) http.Handler {
 
 func WriteUserCookie(w http.ResponseWriter, userID uuid.UUID, debug bool) {
 	cookie :=  &http.Cookie{
-		Name:     CookieName,
+		Name:     UserIDCookie,
 		Value:    userID.String(),
 		Path:     "/",
 		MaxAge:   math.MaxInt32, // cookie is effectively permanent
@@ -71,18 +71,3 @@ func WriteUserCookie(w http.ResponseWriter, userID uuid.UUID, debug bool) {
 	w.Header().Add("Cache-Control", `no-cache="Set-Cookie"`)
 }
 
-// middleware to enable cors for development
-func CorsDebug(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
-		// w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-CSRF-Token, HX-Request, HX-Trigger, HX-Trigger-Name, HX-Target, HX-Current-URL")
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
-
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}

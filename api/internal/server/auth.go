@@ -11,7 +11,7 @@ import (
 
 const UserIDCookie = "userID"
 
-func (app *Application) AuthSession(next http.Handler) http.Handler {
+func (app *Application) authSession(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		{
 			cookie, err := r.Cookie(UserIDCookie)
@@ -36,6 +36,7 @@ func (app *Application) AuthSession(next http.Handler) http.Handler {
 			}
 
 			// validate user exists
+			// OPTIMIZE: user id cache instead of DB queries
 			_, err = app.db.GetUser(r.Context(), intUUID)
 			if err != nil {
 				slog.Error("could not retrieve user from db", "err", err)

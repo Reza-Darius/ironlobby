@@ -38,7 +38,7 @@ func (app *Application) routes() *chi.Mux {
 
 		// authorized routes, require a user name with a corresponding cookie with the user's id
 		r.Group(func(r chi.Router) {
-			r.Use(app.AuthSession)
+			r.Use(app.authSession)
 
 			r.Route("/lobby", func(r chi.Router) {
 				// host actions

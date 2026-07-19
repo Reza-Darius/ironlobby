@@ -17,10 +17,10 @@ and more!
 
 - The App has two modes: hosting a game or joining a game
 - When hosting, the user gets host privileges, such as defining game rules,
-assigning nations and distributing the invite ID for when the game is supposed
-to commence
+  assigning nations and distributing the invite ID for when the game is supposed
+  to commence
 - When joining a lobby, users can reserve/queue/or otherwise signal their
-preference for a certain nation
+  preference for a certain nation
 
 ## Implementation
 
@@ -28,14 +28,14 @@ preference for a certain nation
 
 requires docker
 
-```
+```bash
 git clone https://github.com/Reza-Darius/ironlobby
 docker compose up
 ```
 
 iron Lobby is configured via an `.env` file with the following values:
 
-```
+```env
 PORT=3000
 DEBUG_CORS=true
 

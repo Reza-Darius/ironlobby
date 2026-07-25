@@ -183,7 +183,7 @@ func TestCreateLobby(t *testing.T) {
 	defer srv.Close()
 
 	// try to post lobby without a registered user
-	res, err := srv.Client().Post(srv.URL+"/api/lobby", "application/json", bytes.NewBuffer([]byte("")))
+	res, err := srv.Client().Post(srv.URL+"/api/lobby", "application/json", nil)
 	if err != nil {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}

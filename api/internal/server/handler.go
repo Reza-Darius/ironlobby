@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -213,6 +214,7 @@ func (app *Application) newLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Add("Location", "/lobby/"+strconv.FormatInt(lobby.ID, 10))
 	slog.Debug("new lobby created", "lobby", lobby)
 }
 
@@ -288,6 +290,7 @@ func (app *Application) leaveLobby(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	w.WriteHeader(http.StatusNoContent)
 	slog.Debug("deleted user from lobby", "player", playerID, "lobby", lobbyID)
 }
 
@@ -315,6 +318,7 @@ func (app *Application) updateLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.WriteHeader(http.StatusNoContent)
 	slog.Debug("updated lobby", "lobby", lobbyID, "lobby_settings", updateParams)
 }
 
@@ -393,6 +397,8 @@ func (app *Application) deleteLobbyCountry(w http.ResponseWriter, r *http.Reques
 		}
 		return
 	}
+
+	w.WriteHeader(http.StatusNoContent)
 	slog.Debug("deleted country from lobby", "country", tag, "lobby", lobbyID)
 }
 

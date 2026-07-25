@@ -13,11 +13,9 @@ import (
 
 // domain errors to not expose PG internals
 var (
-	ErrUserNotFound = errors.New("user not found")
-
-	ErrLobbyExists       = errors.New("lobby already exists")
-	ErrLobbyDoesntExists = errors.New("lobby doesnt exist")
-
+	ErrUserNotFound          = errors.New("user not found")
+	ErrLobbyExists           = errors.New("lobby already exists")
+	ErrLobbyDoesntExists     = errors.New("lobby doesnt exist")
 	ErrUserExists            = errors.New("user already exists")
 	ErrNationSlotsFull       = errors.New("the requested nation's slots are full")
 	ErrNationNotAvail        = errors.New("the requested nation is not available")

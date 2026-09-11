@@ -85,10 +85,10 @@ func CreateTestLobby(srv *httptest.Server, lobby *database.InsertLobbyParams, co
 	}
 
 	res, err := srv.Client().Post(srv.URL+"/api/lobby", "application/json", bytes.NewBuffer(out))
-	defer res.Body.Close()
 	if err != nil {
 		return 0, err
 	}
+	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusCreated {
 		return 0, fmt.Errorf("failed to create lobby, status: %v", res.StatusCode)
@@ -114,10 +114,10 @@ func AddTestCountry(srv *httptest.Server, args *database.UpsertLobbyCountryParam
 
 	url := srv.URL + "/api/lobby/" + strconv.Itoa(int(args.LobbyID)) + "/country"
 	res, err := srv.Client().Post(url, "application/json", bytes.NewBuffer(addCountryJSON))
-	defer res.Body.Close()
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusCreated {
 		return fmt.Errorf("couldnt add country, code: %v", res.StatusCode)
@@ -133,11 +133,11 @@ func TestHealthHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
+	defer res.Body.Close()
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
 	rb, err := io.ReadAll(res.Body)
-	defer res.Body.Close()
 	if err != nil {
 		t.Fatalf("failed to read response body, err: %v", err)
 	}
@@ -367,10 +367,10 @@ func TestJoinLeaveLobby(t *testing.T) {
 	lobbyIDstr := strconv.Itoa(int(lobbyID))
 	url = srv.URL + "/api/lobby/" + lobbyIDstr + "/player"
 	res, err = srv.Client().Post(url, "application/json", bytes.NewBuffer(joinLobbyJSON))
-	defer res.Body.Close()
 	if err != nil {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
+	defer res.Body.Close()
 
 	if !assert.Equal(t, http.StatusCreated, res.StatusCode, "we should be able to join as GER after adding it") {
 		t.FailNow()
@@ -380,10 +380,10 @@ func TestJoinLeaveLobby(t *testing.T) {
 	var lobbyInfo database.LobbyInfo
 
 	lobby, err := srv.Client().Get(srv.URL + "/api/lobby/" + strconv.Itoa(int(lobbyID)))
-	defer lobby.Body.Close()
 	if err != nil {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
+	defer lobby.Body.Close()
 
 	err = json.NewDecoder(lobby.Body).Decode(&lobbyInfo)
 	if err != nil {
@@ -413,10 +413,10 @@ func TestJoinLeaveLobby(t *testing.T) {
 
 	url = srv.URL + "/api/lobby/" + strconv.Itoa(int(lobbyID)) + "/player"
 	res, err = srv.Client().Post(url, "application/json", bytes.NewBuffer(joinLobbyJSON))
-	defer res.Body.Close()
 	if err != nil {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
+	defer res.Body.Close()
 
 	if !assert.Equal(t, http.StatusCreated, res.StatusCode, "we should be able to swap") {
 		t.FailNow()
@@ -424,10 +424,10 @@ func TestJoinLeaveLobby(t *testing.T) {
 
 	// check lobby again
 	lobby, err = srv.Client().Get(srv.URL + "/api/lobby/" + strconv.Itoa(int(lobbyID)))
-	defer lobby.Body.Close()
 	if err != nil {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
+	defer lobby.Body.Close()
 
 	err = json.NewDecoder(lobby.Body).Decode(&lobbyInfo)
 	if err != nil {
@@ -470,10 +470,10 @@ func TestJoinLeaveLobby(t *testing.T) {
 
 	// check lobby again
 	lobby, err = srv.Client().Get(srv.URL + "/api/lobby/" + lobbyIDstr)
-	defer lobby.Body.Close()
 	if err != nil {
 		t.Fatalf("failed to get a response, err: %v", err)
 	}
+	defer lobby.Body.Close()
 
 	err = json.NewDecoder(lobby.Body).Decode(&lobbyInfo)
 	if err != nil {

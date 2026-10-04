@@ -49,7 +49,7 @@ func TestInsert(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to insert player %v", err)
 		}
-		t.Logf("inserterd player %v, id = %v", player.PlayerName, player.ID)
+		t.Logf("inserted player %v, id = %v", player.PlayerName, player.ID)
 		hostID = player.ID
 		regPlayer[name] = player.ID
 	}

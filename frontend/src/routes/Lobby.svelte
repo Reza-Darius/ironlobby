@@ -453,7 +453,6 @@
               <li class:me={p.player_name === me.callsign}>
                 <Flag tag={p.country_tag} size="sm" />
                 <span class="rname">{p.player_name}</span>
-                <span class="rnation dim">{nameOf(p.country_tag)}</span>
               </li>
             {/each}
           </ul>
@@ -852,11 +851,6 @@
   .roster li.me .rname {
     color: var(--accent-2);
     font-weight: 600;
-  }
-  .rnation {
-    margin-left: auto;
-    font-size: 13.5px;
-    white-space: nowrap;
   }
   .rname {
     overflow: hidden;

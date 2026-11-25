@@ -59,6 +59,8 @@
     max-width: min(520px, calc(100vw - 32px));
     width: 100%;
     max-height: calc(100dvh - 32px);
+    /* don't inherit pre-wrap etc. from wherever the component is placed */
+    white-space: normal;
   }
   dialog::backdrop {
     background: rgb(5 6 4 / 0.7);

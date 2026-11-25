@@ -6,6 +6,7 @@
   import NationPicker from '../components/NationPicker.svelte'
   import DateTimePicker from '../components/DateTimePicker.svelte'
   import Flag from '../components/Flag.svelte'
+  import LinkedText from '../components/LinkedText.svelte'
   import { api, ApiError } from '../lib/api'
   import { authed, forgetLobby, isHost, me, rememberLobby, type Role } from '../lib/identity.svelte'
   import { BLOCS, isMajor, nationBloc, type Bloc } from '../lib/nations'
@@ -309,21 +310,17 @@
           {#if cd.state === 'live'}<span class="live-dot"></span>{:else}<Icon name="clock" size={12} />{/if}
           {cd.text}
         </span>
-      </div>
-    </div>
-    <div class="head-side">
-      <div class="row head-badges">
         <span class="badge">{gamemodeLabel(lobby.gamemode)}</span>
         {#if host}<span class="badge accent"><Icon name="crown" size={12} />You're hosting</span>{/if}
       </div>
-      <div class="head-actions">
+    </div>
+    <div class="head-actions">
       <button class="btn" onclick={() => copy(lobbyUrl(id), 'Invite link copied')}>
         <Icon name="link" size={15} />Copy invite
       </button>
       {#if host}
         <button class="btn" onclick={openEdit}><Icon name="pencil" size={14} />Edit</button>
       {/if}
-      </div>
     </div>
   </header>
 
@@ -418,7 +415,7 @@
       {#if lobby.description}
         <section class="panel side-card">
           <h2 class="side-title">Description</h2>
-          <p class="description">{lobby.description}</p>
+          <div class="description"><LinkedText text={lobby.description} /></div>
         </section>
       {/if}
 
@@ -578,11 +575,12 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px 16px;
+    gap: 8px 10px;
     font-size: 15.5px;
   }
   .meta .row {
     gap: 6px;
+    margin-right: 6px;
   }
   .live-dot {
     width: 7px;
@@ -596,27 +594,9 @@
       opacity: 0.3;
     }
   }
-  .head-side {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 12px;
-  }
-  .head-badges {
-    justify-content: flex-end;
-  }
   .head-actions {
     display: flex;
     gap: 8px;
-  }
-  /* once the header wraps on narrow screens, line everything up on the left */
-  @media (max-width: 720px) {
-    .head-side {
-      align-items: flex-start;
-    }
-    .head-badges {
-      justify-content: flex-start;
-    }
   }
   .count-pill {
     display: inline-grid;

@@ -9,7 +9,7 @@
   import { api } from '../lib/api'
   import { authed, markHosted, rememberLobby } from '../lib/identity.svelte'
   import { PRESETS } from '../lib/nations'
-  import { navigate } from '../lib/router.svelte'
+  import { goBack, navigate } from '../lib/router.svelte'
   import { countries, nameOf, toast, toastError } from '../lib/state.svelte'
   import { defaultStart, fromLocalInput, timezoneName } from '../lib/time'
   import { GAMEMODES, type Gamemode } from '../lib/types'
@@ -80,7 +80,14 @@
   }
 </script>
 
-<a href="/" class="back btn ghost sm"><Icon name="back" size={14} />Back</a>
+<a
+  href="/"
+  class="back btn ghost sm"
+  onclick={(e) => {
+    e.preventDefault()
+    goBack()
+  }}><Icon name="back" size={14} />Back</a
+>
 
 <header class="head">
   <h1>Host a game</h1>

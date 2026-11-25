@@ -75,7 +75,7 @@
           >
             <span class="pip"></span>
             <span class="slot-label">Open slot</span>
-            <span class="cta">{myTag ? 'Switch here' : 'Claim'}<Icon name="arrow" size={13} /></span>
+            <span class="cta"><Icon name="back" size={13} />{myTag ? 'Switch here' : 'Claim'}</span>
           </button>
         {/if}
       </li>

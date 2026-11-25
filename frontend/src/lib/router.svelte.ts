@@ -15,9 +15,18 @@ export function match(path: string): Route {
 export function navigate(to: string, { replace = false } = {}) {
   const url = new URL(to, window.location.origin)
   if (url.pathname === location_.path) return
-  history[replace ? 'replaceState' : 'pushState']({}, '', url)
+  // inApp marks entries reached by navigating inside the app, so goBack() knows
+  // the previous history entry is one of our pages (and not another site)
+  const inApp = replace ? !!history.state?.inApp : true
+  history[replace ? 'replaceState' : 'pushState']({ inApp }, '', url)
   location_.path = url.pathname
   window.scrollTo({ top: 0 })
+}
+
+/** Back to the page the user came from; `fallback` when they landed here directly. */
+export function goBack(fallback = '/') {
+  if (history.state?.inApp) history.back()
+  else navigate(fallback, { replace: true })
 }
 
 window.addEventListener('popstate', () => (location_.path = window.location.pathname))

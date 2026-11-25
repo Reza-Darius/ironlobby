@@ -55,7 +55,7 @@
     text-align: center;
     font-family: var(--mono);
     font-weight: 600;
-    font-size: 14px;
+    font-size: 15px;
   }
   .stepper :global(.btn) {
     border-color: transparent;

@@ -39,7 +39,7 @@
     box-shadow: var(--shadow-lg);
     color: var(--text);
     font: inherit;
-    font-size: 14px;
+    font-size: 15px;
     text-align: left;
     cursor: pointer;
   }

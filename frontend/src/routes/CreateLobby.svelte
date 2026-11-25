@@ -40,7 +40,7 @@
     if (name.trim().length < 3) e.name = 'Give the lobby a name (3+ characters).'
     if (!startsAt) e.startsAt = 'Pick a start time.'
     else if (new Date(startsAt).getTime() < Date.now()) e.startsAt = 'The start time is in the past.'
-    if (description.length > 1000) e.description = 'Keep the briefing under 1000 characters.'
+    if (description.length > 1000) e.description = 'Keep the description under 1000 characters.'
     if (nations.length === 0) e.nations = 'Open at least one nation for players to claim.'
     errors = e
     return Object.keys(e).length === 0
@@ -123,7 +123,7 @@
     </div>
 
     <label class="field">
-      <span class="label">Rules & notes <span class="dim">(optional)</span></span>
+      <span class="label">Description <span class="dim">(optional)</span></span>
       <textarea
         class="textarea"
         bind:value={description}
@@ -239,10 +239,10 @@
     border: 1px solid var(--accent);
     color: var(--accent);
     font-family: var(--mono);
-    font-size: 12px;
+    font-size: 13px;
   }
   .small {
-    font-size: 13.5px;
+    font-size: 14.5px;
   }
   fieldset {
     border: 0;
@@ -288,13 +288,13 @@
   }
   .seg-label {
     font-weight: 600;
-    font-size: 14px;
+    font-size: 15px;
   }
   .seg.on .seg-label {
     color: var(--accent-2);
   }
   .seg-blurb {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--dim);
     line-height: 1.3;
   }
@@ -336,7 +336,7 @@
   .nation-name {
     flex: 1;
     min-width: 0;
-    font-size: 14.5px;
+    font-size: 15.5px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -356,7 +356,7 @@
     border: 1px dashed var(--line-2);
     border-radius: var(--radius);
     color: var(--dim);
-    font-size: 14px;
+    font-size: 15px;
   }
   .empty.invalid {
     border-color: var(--danger);

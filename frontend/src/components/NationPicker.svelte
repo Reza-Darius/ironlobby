@@ -147,7 +147,7 @@
     padding: 7px 8px;
     border-radius: 5px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 15px;
   }
   li.active {
     background: var(--line);

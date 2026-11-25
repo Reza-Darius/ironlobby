@@ -278,7 +278,7 @@
   }
   .wd {
     text-align: center;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--muted);
     padding: 4px 0;
@@ -292,7 +292,7 @@
     background: transparent;
     color: var(--text);
     font: inherit;
-    font-size: 14px;
+    font-size: 15px;
     cursor: pointer;
     transition:
       background 0.12s,

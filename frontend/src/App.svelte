@@ -98,7 +98,7 @@
     background: var(--panel);
     color: var(--text);
     font: inherit;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     overflow: hidden;
@@ -124,7 +124,7 @@
   .foot {
     padding-top: 24px;
     padding-bottom: 28px;
-    font-size: 12.5px;
+    font-size: 13.5px;
     border-top: 1px solid var(--line);
   }
   @media (max-width: 480px) {

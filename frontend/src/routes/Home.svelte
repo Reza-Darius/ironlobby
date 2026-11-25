@@ -286,7 +286,7 @@
     border-radius: 4px;
   }
   .recent-nation {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--accent-2);
     font-weight: 500;
   }
@@ -300,7 +300,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 13px;
+    font-size: 14px;
     flex-wrap: wrap;
   }
   .soon {

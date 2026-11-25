@@ -165,7 +165,7 @@
     gap: 9px;
     padding: 6px 8px;
     border-radius: 6px;
-    font-size: 14px;
+    font-size: 15px;
   }
   .seat.taken {
     background: var(--panel-2);
@@ -182,7 +182,7 @@
     align-items: center;
     background: transparent;
     font: inherit;
-    font-size: 14px;
+    font-size: 15px;
     text-align: left;
     cursor: pointer;
     transition:
@@ -200,7 +200,7 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 12.5px;
+    font-size: 13.5px;
     font-weight: 600;
     color: var(--accent);
     opacity: 0;
@@ -263,14 +263,14 @@
   }
   .you {
     margin-left: 4px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--accent);
   }
   .note {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--muted);
     font-style: italic;
     overflow-wrap: anywhere;
@@ -286,7 +286,7 @@
     flex: 1;
   }
   .full-label {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;

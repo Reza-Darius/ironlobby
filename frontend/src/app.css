@@ -109,7 +109,7 @@ a {
 
 .kicker {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -153,7 +153,7 @@ a {
   background: var(--panel-2);
   color: var(--text);
   font: inherit;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
@@ -211,7 +211,7 @@ a {
 .btn.sm {
   height: 30px;
   padding: 0 10px;
-  font-size: 13px;
+  font-size: 14px;
 }
 .btn.lg {
   height: 46px;
@@ -239,16 +239,16 @@ a {
   min-width: 0;
 }
 .label {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--muted);
 }
 .hint {
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--dim);
 }
 .error {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--danger);
 }
 .input,
@@ -300,7 +300,7 @@ a {
   border-radius: 999px;
   border: 1px solid var(--line-2);
   background: var(--panel-2);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--muted);
   white-space: nowrap;

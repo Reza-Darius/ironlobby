@@ -77,7 +77,7 @@
   }
   header p {
     margin-top: 4px;
-    font-size: 14px;
+    font-size: 15px;
   }
   .body {
     padding: 16px 20px 20px;

@@ -232,7 +232,7 @@
     e.preventDefault()
     if (!lobby) return
     if (draft.name.trim().length < 3) return (draftError = 'The name needs at least 3 characters.')
-    if (draft.description.length > 1000) return (draftError = 'Keep the briefing under 1000 characters.')
+    if (draft.description.length > 1000) return (draftError = 'Keep the description under 1000 characters.')
     const patch: Parameters<typeof api.updateLobby>[1] = {}
     if (draft.name.trim() !== lobby.lobby_name) patch.lobby_name = draft.name.trim()
     if (draft.description.trim() !== lobby.description) patch.description = draft.description.trim()
@@ -426,7 +426,7 @@
 
       {#if lobby.description}
         <section class="panel side-card">
-          <h2 class="side-title">Rules & notes</h2>
+          <h2 class="side-title">Description</h2>
           <p class="description">{lobby.description}</p>
         </section>
       {/if}
@@ -534,7 +534,7 @@
       <span class="hint">Your local time ({timezoneName()}).</span>
     </div>
     <label class="field">
-      <span class="label">Rules & notes</span>
+      <span class="label">Description</span>
       <textarea class="textarea" rows="5" bind:value={draft.description}></textarea>
       <span class="hint">{draft.description.length} / 1000 · Game mode can't be changed after creation.</span>
     </label>
@@ -589,7 +589,7 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 8px 16px;
-    font-size: 14.5px;
+    font-size: 15.5px;
   }
   .meta .row {
     gap: 6px;
@@ -639,7 +639,7 @@
     border: 1px solid var(--line-2);
     color: var(--text);
     font-family: var(--mono);
-    font-size: 12.5px;
+    font-size: 13.5px;
     font-weight: 600;
     letter-spacing: 0;
     line-height: 1;
@@ -684,7 +684,7 @@
     gap: 12px;
     padding: 12px 16px;
     color: var(--muted);
-    font-size: 14.5px;
+    font-size: 15.5px;
   }
   .status.has {
     border-color: rgb(214 170 76 / 0.4);
@@ -699,7 +699,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 14px;
+    font-size: 15px;
     text-transform: uppercase;
     letter-spacing: 0.12em;
     margin-bottom: 12px;
@@ -723,7 +723,7 @@
     display: flex;
     align-items: center;
     gap: 9px;
-    font-size: 14px;
+    font-size: 15px;
   }
   .factions .bloc-dot {
     background: var(--bloc);
@@ -811,7 +811,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
+    font-size: 14px;
     text-transform: uppercase;
     letter-spacing: 0.12em;
     color: var(--muted);
@@ -848,12 +848,12 @@
     color: var(--muted);
   }
   .small {
-    font-size: 13.5px;
+    font-size: 14.5px;
   }
   .description {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
-    font-size: 14px;
+    font-size: 15px;
     color: var(--text);
   }
   .roster {
@@ -868,7 +868,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 14px;
+    font-size: 15px;
     min-width: 0;
   }
   .roster li.me .rname {
@@ -877,7 +877,7 @@
   }
   .rnation {
     margin-left: auto;
-    font-size: 12.5px;
+    font-size: 13.5px;
     white-space: nowrap;
   }
   .rname {

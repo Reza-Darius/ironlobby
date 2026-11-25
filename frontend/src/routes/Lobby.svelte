@@ -8,7 +8,7 @@
   import Flag from '../components/Flag.svelte'
   import { api, ApiError } from '../lib/api'
   import { authed, forgetLobby, isHost, me, rememberLobby, type Role } from '../lib/identity.svelte'
-  import { BLOCS, nationBloc, type Bloc } from '../lib/nations'
+  import { BLOCS, isMajor, nationBloc, type Bloc } from '../lib/nations'
   import { lobbyUrl, navigate } from '../lib/router.svelte'
   import { clock, copy, nameOf, toast, toastError } from '../lib/state.svelte'
   import { countdown, formatDate, fromLocalInput, timezoneName, toLocalInput } from '../lib/time'
@@ -66,8 +66,13 @@
       bloc,
       nations: list
         .filter((c) => nationBloc(c.country_tag) === bloc)
-        // alphabetical only: cards must not jump around when slots change
-        .sort((a, b) => nameOf(a.country_tag).localeCompare(nameOf(b.country_tag))),
+        // majors first, then alphabetical. Only static facts: cards must not
+        // jump around when slots or players change
+        .sort(
+          (a, b) =>
+            Number(isMajor(b.country_tag)) - Number(isMajor(a.country_tag)) ||
+            nameOf(a.country_tag).localeCompare(nameOf(b.country_tag)),
+        ),
     })).filter((g) => g.nations.length)
   })
 

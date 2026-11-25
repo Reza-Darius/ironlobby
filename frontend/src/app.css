@@ -23,6 +23,9 @@
   --sans: 'IBM Plex Sans', system-ui, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, monospace;
 
+  /* how much the background art is darkened (1 = hidden) */
+  --bg-tint: 0.8;
+
   --radius: 7px;
   --radius-lg: 12px;
   /* only floating layers (menus, dialogs, toasts) get a shadow; boxes stay flat */
@@ -45,15 +48,32 @@ body {
   margin: 0;
   min-height: 100dvh;
   background-color: var(--bg);
-  /* fine grain only, no glows or vignette */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .92 0 0 0 0 .86 0 0 0 0 .7 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 240px 240px;
-  background-attachment: fixed;
   color: var(--text);
   font-family: var(--sans);
   font-size: 15px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Background art under a flat dark tint so panels and text stay readable.
+   Fixed pseudo-elements instead of background-attachment: fixed, which
+   mobile browsers ignore or render badly. */
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+body::before {
+  background: var(--bg) url('../assets/bg-aat.webp') center / cover no-repeat;
+}
+body::after {
+  /* --bg at --bg-tint opacity, plus the fine grain */
+  background-color: rgb(19 19 15 / var(--bg-tint));
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .92 0 0 0 0 .86 0 0 0 0 .7 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 240px 240px;
 }
 
 h1,

@@ -52,7 +52,10 @@
 </main>
 
 <footer class="container foot dim">
-  Iron Lobby · a lobby organiser for Hearts of Iron IV multiplayer. Not affiliated with Paradox Interactive.
+  <span>Iron Lobby · a lobby organiser for Hearts of Iron IV multiplayer. Not affiliated with Paradox Interactive.</span>
+  <a class="repo" href="https://github.com/Reza-Darius/ironlobby" target="_blank" rel="noopener noreferrer">
+    <Icon name="github" size={15} />Source on GitHub
+  </a>
 </footer>
 
 <EnlistModal />
@@ -126,6 +129,21 @@
     padding-bottom: 28px;
     font-size: 13.5px;
     border-top: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 24px;
+    flex-wrap: wrap;
+  }
+  .repo {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    transition: color 0.15s;
+  }
+  .repo:hover {
+    color: var(--accent-2);
   }
   @media (max-width: 480px) {
     .hide-sm {

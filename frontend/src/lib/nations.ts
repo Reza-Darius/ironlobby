@@ -67,8 +67,12 @@ function hashColor(tag: string) {
 export const nationColor = (tag: string) => META[tag]?.[0] ?? hashColor(tag)
 export const nationBloc = (tag: string): Bloc => META[tag]?.[1] ?? 'other'
 
+/** The seven 1936 major powers. */
+export const MAJORS = ['GER', 'ITA', 'JAP', 'SOV', 'USA', 'ENG', 'FRA']
+export const isMajor = (tag: string) => MAJORS.includes(tag)
+
 export const PRESETS: { label: string; tags: string[] }[] = [
-  { label: 'Majors', tags: ['GER', 'ITA', 'JAP', 'SOV', 'USA', 'ENG', 'FRA'] },
+  { label: 'Majors', tags: MAJORS },
   { label: 'Axis', tags: ['GER', 'ITA', 'JAP', 'HUN', 'ROM', 'BUL', 'MAN'] },
   { label: 'Allies', tags: ['ENG', 'FRA', 'USA', 'CAN', 'AST', 'RAJ', 'SAF', 'POL', 'HOL'] },
   { label: 'Comintern', tags: ['SOV', 'MON', 'PRC'] },

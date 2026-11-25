@@ -69,11 +69,8 @@ func (app *Application) getCountries(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "couldnt fetch countries", http.StatusInternalServerError)
 		return
 	}
-	err = encode(w, http.StatusOK, countries)
-	if err != nil {
-		http.Error(w, "couldnt encode countries", http.StatusInternalServerError)
-		return
-	}
+
+	respondJSON(w, http.StatusOK, countries)
 }
 
 func (app *Application) getLobby(w http.ResponseWriter, r *http.Request) {
@@ -100,12 +97,7 @@ func (app *Application) getLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = encode(w, http.StatusOK, lobby)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		slog.Error("error when encoding json body in get lobby", "err", err)
-		return
-	}
+	respondJSON(w, http.StatusOK, lobby)
 }
 
 func (app *Application) getLobbyCountries(w http.ResponseWriter, r *http.Request) {
@@ -132,12 +124,7 @@ func (app *Application) getLobbyCountries(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = encode(w, http.StatusOK, lobby)
-	if err != nil {
-		slog.Error("error when encoding json body in get lobby countries", "err", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	respondJSON(w, http.StatusOK, lobby)
 }
 
 func (app *Application) getLobbyPlayers(w http.ResponseWriter, r *http.Request) {
@@ -164,12 +151,7 @@ func (app *Application) getLobbyPlayers(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = encode(w, http.StatusOK, lobby)
-	if err != nil {
-		slog.Error("error when encoding json body in get lobby player", "err", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	respondJSON(w, http.StatusOK, lobby)
 }
 
 func (app *Application) newLobby(w http.ResponseWriter, r *http.Request) {
@@ -207,14 +189,9 @@ func (app *Application) newLobby(w http.ResponseWriter, r *http.Request) {
 		LobbyID: lobby.ID,
 	}
 
-	err = encode(w, http.StatusCreated, newLobbyRes)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		slog.Error("error when encoding json body in create lobby", "err", err)
-		return
-	}
-
 	slog.Debug("new lobby created", "lobby", lobby)
+
+	respondJSON(w, http.StatusCreated, newLobbyRes)
 }
 
 func (app *Application) joinLobby(w http.ResponseWriter, r *http.Request) {
@@ -295,7 +272,7 @@ func (app *Application) leaveLobby(w http.ResponseWriter, r *http.Request) {
 func (app *Application) updateLobby(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	_, lobbyID, err := checkHost(app.db, w, r)
+	lobbyID, err := getLobbyID(r)
 	if err != nil {
 		return
 	}
@@ -322,7 +299,7 @@ func (app *Application) updateLobby(w http.ResponseWriter, r *http.Request) {
 func (app *Application) addLobbyCountry(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	_, lobbyID, err := checkHost(app.db, w, r)
+	lobbyID, err := getLobbyID(r)
 	if err != nil {
 		return
 	}
@@ -360,7 +337,8 @@ func (app *Application) addLobbyCountry(w http.ResponseWriter, r *http.Request) 
 
 func (app *Application) deleteLobbyCountry(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	_, lobbyID, err := checkHost(app.db, w, r)
+
+	lobbyID, err := getLobbyID(r)
 	if err != nil {
 		slog.Error("user is not host")
 		return
@@ -399,7 +377,8 @@ func (app *Application) deleteLobbyCountry(w http.ResponseWriter, r *http.Reques
 
 func (app *Application) updateLobbyCountry(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	_, lobbyID, err := checkHost(app.db, w, r)
+
+	lobbyID, err := getLobbyID(r)
 	if err != nil {
 		slog.Error("user is not host")
 		return

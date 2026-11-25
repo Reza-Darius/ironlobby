@@ -6,11 +6,16 @@ import (
 	"log/slog"
 	"math"
 	"net/http"
+
 	"github.com/google/uuid"
 )
 
-const CookieName = "username"
+const (
+	CookieName = "username"
+	LobbyInfo  = "lobby_info"
+)
 
+// AuthSession authenticates the User through the cookie and places the user ID inside the context
 func (app *Application) AuthSession(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		{
@@ -52,8 +57,35 @@ func (app *Application) AuthSession(next http.Handler) http.Handler {
 	})
 }
 
+func (app *Application) AuthHost(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		playerID, lobbyID, err := getIDs(r)
+		if err != nil {
+			slog.Error("couldnt retrieve lobby or player id", "err", err)
+			http.Error(w, "couldnt retrieve lobby or player id", http.StatusBadRequest)
+			return
+		}
+
+		// check host privileges
+		isHost, err := app.db.PlayerIsHost(r.Context(), playerID, lobbyID)
+		if err != nil {
+			slog.Error("couldnt check host in db", "err", err)
+			http.Error(w, "couldnt check host in db", http.StatusInternalServerError)
+			return
+		}
+
+		if !isHost {
+			slog.Error("user is not host")
+			http.Error(w, "missing host privileges", http.StatusForbidden)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func WriteUserCookie(w http.ResponseWriter, userID uuid.UUID, debug bool) {
-	cookie :=  &http.Cookie{
+	cookie := &http.Cookie{
 		Name:     CookieName,
 		Value:    userID.String(),
 		Path:     "/",

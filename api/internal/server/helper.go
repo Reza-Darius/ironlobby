@@ -10,17 +10,22 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/reza-darius/ironlobby/internal/database"
 )
 
-// helper functions for encoding json bodies
-func encode[T any](w http.ResponseWriter, status int, v T) error {
+// JSON writes data as a JSON response with the given HTTP status code.
+// It sets the Content-Type header to application/json. If marshalling fails,
+// a 500 Internal Server Error is written as plain text.
+func respondJSON(w http.ResponseWriter, status int, data any) {
+	body, err := json.Marshal(data)
+	if err != nil {
+		slog.Error("failed to marshal json", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	if err := json.NewEncoder(w).Encode(v); err != nil {
-		return fmt.Errorf("encode json: %w", err)
-	}
-	return nil
+	w.Write(body)
 }
 
 // helper functions for decoding json bodies
@@ -49,58 +54,29 @@ func secureHeaders(next http.Handler) http.Handler {
 	})
 }
 
-// errors if it cant retrieve both lobby id and player id
+// retrieves player and lobby id, errors if it cant retrieve both lobby id and player id
 func getIDs(r *http.Request) (uuid.UUID, int64, error) {
 	// player ID from cookie
 	playerID := GetPlayerID(r)
 
 	// lobby ID from url path
-	lID := chi.URLParam(r, "lobby_id")
-	if lID == "" {
-		return uuid.UUID{}, 0, errors.New("empty lobby ID")
-	}
-
-	lobbyID, err := strconv.ParseInt(lID, 10, 64)
+	lobbyID, err := getLobbyID(r)
 	if err != nil {
 		return uuid.UUID{}, 0, err
 	}
+
 	return playerID, lobbyID, nil
 }
 
 func getLobbyID(r *http.Request) (int64, error) {
 	lobbyID := chi.URLParam(r, "lobby_id")
 	if lobbyID == "" {
-		return  0, errors.New("empty lobby ID")
+		return 0, errors.New("empty lobby ID")
 	}
 
 	IDInt, err := strconv.ParseInt(lobbyID, 10, 64)
 	if err != nil {
-		return  0, err
+		return 0, err
 	}
 	return IDInt, nil
-}
-
-// returns IDs if the user id is host for the lobby id
-func checkHost(db *database.Database, w http.ResponseWriter, r *http.Request) (uuid.UUID, int64, error) {
-	playerID, lobbyID, err := getIDs(r)
-	if err != nil {
-		slog.Error("couldnt retrieve lobby or player id", "err", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return uuid.UUID{}, 0, fmt.Errorf("couldnt get IDs, err: %v", err)
-	}
-
-	// check host privileges
-	isHost, err := db.PlayerIsHost(r.Context(), playerID, lobbyID)
-	if err != nil {
-		slog.Error("couldnt check host in db", "err", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return uuid.UUID{}, 0, fmt.Errorf("couldnt check DB for host, err: %v", err)
-	}
-
-	if !isHost {
-		slog.Error("user is not host")
-		w.WriteHeader(http.StatusUnauthorized)
-		return uuid.UUID{}, 0, fmt.Errorf("request user is not host, err: %v", err)
-	}
-	return playerID, lobbyID, nil
 }

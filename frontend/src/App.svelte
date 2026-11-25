@@ -1,0 +1,136 @@
+<script lang="ts">
+  import EnlistModal from './components/EnlistModal.svelte'
+  import Icon from './components/Icon.svelte'
+  import Logo from './components/Logo.svelte'
+  import Toasts from './components/Toasts.svelte'
+  import { askForCallsign, me } from './lib/identity.svelte'
+  import { location_, match } from './lib/router.svelte'
+  import { loadCountries } from './lib/state.svelte'
+  import CreateLobby from './routes/CreateLobby.svelte'
+  import Home from './routes/Home.svelte'
+  import Lobby from './routes/Lobby.svelte'
+  import Missing from './routes/Missing.svelte'
+
+  const route = $derived(match(location_.path))
+
+  loadCountries()
+</script>
+
+<header class="topbar">
+  <div class="container inner">
+    <a href="/" class="brand" aria-label="Iron Lobby home">
+      <Logo />
+      <span class="word">Iron Lobby</span>
+    </a>
+    <div class="row">
+      {#if route.name !== 'new'}
+        <a href="/new" class="btn sm ghost hide-sm"><Icon name="plus" size={14} />Host</a>
+      {/if}
+      {#if me.callsign}
+        <button class="callsign" onclick={() => askForCallsign('Register a new callsign for this browser.')} title="Change callsign">
+          <span class="dot"></span>{me.callsign}
+        </button>
+      {:else}
+        <button class="btn sm" onclick={() => askForCallsign()}>Enlist</button>
+      {/if}
+    </div>
+  </div>
+</header>
+
+<main class="container">
+  {#if route.name === 'home'}
+    <Home />
+  {:else if route.name === 'new'}
+    <CreateLobby />
+  {:else if route.name === 'lobby'}
+    {#key route.id}
+      <Lobby id={route.id} />
+    {/key}
+  {:else}
+    <Missing />
+  {/if}
+</main>
+
+<footer class="container foot dim">
+  Iron Lobby · a lobby organiser for Hearts of Iron IV multiplayer. Not affiliated with Paradox Interactive.
+</footer>
+
+<EnlistModal />
+<Toasts />
+
+<style>
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgb(17 19 16 / 0.82);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 58px;
+    gap: 12px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text);
+  }
+  .word {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 18px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .callsign {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 200px;
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line-2);
+    background: var(--panel);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .callsign:hover {
+    border-color: var(--accent);
+  }
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--ok);
+    box-shadow: 0 0 0 3px rgb(134 180 111 / 0.2);
+    flex-shrink: 0;
+  }
+  main {
+    padding-top: 28px;
+    padding-bottom: 48px;
+    min-height: calc(100dvh - 58px - 72px);
+  }
+  .foot {
+    padding-top: 24px;
+    padding-bottom: 28px;
+    font-size: 12.5px;
+    border-top: 1px solid var(--line);
+  }
+  @media (max-width: 480px) {
+    .hide-sm {
+      display: none;
+    }
+  }
+</style>

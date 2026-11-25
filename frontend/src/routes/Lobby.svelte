@@ -6,9 +6,9 @@
   import NationPicker from '../components/NationPicker.svelte'
   import Flag from '../components/Flag.svelte'
   import { api, ApiError } from '../lib/api'
-  import { authed, isHost, me, rememberLobby, type Role } from '../lib/identity.svelte'
+  import { authed, forgetLobby, isHost, me, rememberLobby, type Role } from '../lib/identity.svelte'
   import { BLOCS, nationBloc, type Bloc } from '../lib/nations'
-  import { lobbyUrl } from '../lib/router.svelte'
+  import { lobbyUrl, navigate } from '../lib/router.svelte'
   import { clock, copy, nameOf, toast, toastError } from '../lib/state.svelte'
   import { countdown, formatDate, fromLocalInput, toLocalInput } from '../lib/time'
   import { gamemodeLabel, type LobbyInfo, type LobbyPlayer } from '../lib/types'
@@ -238,6 +238,35 @@
     if (draft.startsAt && draft.startsAt !== toLocalInput(lobby.starts_at)) patch.starts_at = fromLocalInput(draft.startsAt)
     editOpen = false
     if (Object.keys(patch).length) await run(() => api.updateLobby(id, patch), '', 'Lobby updated.')
+  }
+
+  // host: delete. Not via run(): there's no lobby left to refresh afterwards.
+  function deleteLobby() {
+    if (!lobby) return
+    editOpen = false
+    const name = lobby.lobby_name
+    ask({
+      title: `Delete ${name}?`,
+      body: "Every player loses their slot and the invite link stops working. This can't be undone.",
+      label: 'Delete lobby',
+      action: async () => {
+        busy = true
+        try {
+          const done = await authed(async () => {
+            await api.deleteLobby(id)
+            return true
+          }, '')
+          if (!done) return
+          forgetLobby(id)
+          toast(`${name} deleted.`)
+          navigate('/', { replace: true })
+        } catch (e) {
+          toastError(e)
+        } finally {
+          busy = false
+        }
+      },
+    })
   }
 </script>
 
@@ -509,6 +538,9 @@
     </label>
     {#if draftError}<span class="error">{draftError}</span>{/if}
     <div class="row end">
+      <button type="button" class="btn ghost danger delete-lobby" onclick={deleteLobby}>
+        <Icon name="trash" size={14} />Delete lobby
+      </button>
       <button type="button" class="btn ghost" onclick={() => (editOpen = false)}>Cancel</button>
       <button class="btn primary">Save changes</button>
     </div>
@@ -859,7 +891,8 @@
     font-size: 17px;
     font-weight: 500;
   }
-  .end {
-    justify-content: flex-end;
+  /* destructive action sits apart from Cancel / Save */
+  .btn.delete-lobby {
+    margin-right: auto;
   }
 </style>

@@ -79,6 +79,7 @@ export function patchLobby(id: number, patch: Partial<RecentLobby>) {
 
 export function forgetLobby(id: number) {
   me.recent = me.recent.filter((r) => r.id !== id)
+  me.hosted = me.hosted.filter((h) => h !== id)
   save()
 }
 

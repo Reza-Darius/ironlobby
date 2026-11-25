@@ -57,8 +57,11 @@
       {#if error}<span class="error">{error}</span>
       {:else}<span class="hint">Use the same name you go by in Steam or Discord so the host recognises you.</span>{/if}
     </label>
-    <button class="btn primary block" disabled={busy}>
-      {busy ? 'Enlisting…' : 'Enlist'}
-    </button>
+    <div class="row end">
+      <button type="button" class="btn ghost" onclick={() => (prompt.open = false)}>Cancel</button>
+      <button class="btn primary" disabled={busy}>
+        {busy ? 'Enlisting…' : 'Enlist'}
+      </button>
+    </div>
   </form>
 </Modal>

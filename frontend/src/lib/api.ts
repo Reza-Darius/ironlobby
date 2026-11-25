@@ -79,6 +79,9 @@ export const api = {
   setSlots: (id: number, tag: string, max_slots: number) =>
     request<void>('PATCH', `${lobbyPath(id)}/country/${tag}`, { max_slots }),
 
+  /** Host only. Spec: docs/delete-lobby.md */
+  deleteLobby: (id: number) => request<void>('DELETE', lobbyPath(id)),
+
   removeCountry: (id: number, tag: string) => request<void>('DELETE', `${lobbyPath(id)}/country/${tag}`),
 
   /** Idempotent: also used to switch nation or change the note. */

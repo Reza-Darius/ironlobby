@@ -175,7 +175,7 @@
         {/if}
         {#if removing.lobby.role === 'host'}
           {removing.seat ? 'As host, the lobby itself stays up for the other players.' : 'This only removes it from your list. The lobby stays up for the other players.'}
-          Deleting lobbies isn't supported yet.
+          To delete it for everyone, use Delete lobby under Edit on the lobby page.
         {/if}
       </p>
       <div class="row end">
@@ -191,9 +191,6 @@
 <style>
   .modes {
     margin-top: 32px;
-  }
-  .end {
-    justify-content: flex-end;
   }
   .modes {
     display: grid;

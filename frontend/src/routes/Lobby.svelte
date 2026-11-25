@@ -327,20 +327,6 @@
     </div>
   </header>
 
-  <!-- status strip -->
-  <div class="status panel" class:has={!!mine}>
-    {#if mine}
-      <Flag tag={mine.country_tag} />
-      <p>You're playing <strong>{nameOf(mine.country_tag)}</strong>{mine.note ? ` · “${mine.note}”` : ''}</p>
-    {:else if host}
-      <Icon name="crown" size={18} />
-      <p>As host you can open nations, set slots, and post the in-game ID. Click an open slot if you're playing too.</p>
-    {:else}
-      <Icon name="flag" size={18} />
-      <p>Click an open slot to claim that nation.{me.callsign ? '' : " You'll be asked for a callsign first."}</p>
-    {/if}
-  </div>
-
   <div class="layout">
     <div class="main">
       {#if groups.length === 0}
@@ -682,33 +668,20 @@
     gap: 24px;
     min-width: 0;
   }
-  .status {
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    color: var(--muted);
-    font-size: 15.5px;
-  }
-  .status.has {
-    border-color: rgb(214 170 76 / 0.4);
-    background: rgb(214 170 76 / 0.06);
-    color: var(--text);
-  }
-  .status :global(svg) {
-    color: var(--accent);
-  }
 
   .bloc-title {
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 15px;
+    font-size: 20px;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.1em;
     margin-bottom: 12px;
-    color: var(--muted);
+    color: var(--text);
+  }
+  .bloc-title .bloc-dot {
+    width: 13px;
+    height: 13px;
   }
   .bloc-dot {
     width: 10px;
@@ -823,7 +796,7 @@
   }
   .launch.ready {
     border-color: rgb(134 180 111 / 0.45);
-    background: #1e2619;
+    background: #26301f;
   }
   .launch.ready .side-title {
     color: var(--ok);

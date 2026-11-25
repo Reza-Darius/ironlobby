@@ -271,7 +271,7 @@
       background 0.12s;
   }
   .seg:hover {
-    border-color: #4c5542;
+    border-color: var(--line-hover);
   }
   .seg.on {
     border-color: var(--accent);

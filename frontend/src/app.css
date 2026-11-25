@@ -2,11 +2,14 @@
 
 :root {
   --bg: #13130f;
-  --bg-2: #161914;
-  --panel: #1b1f18;
-  --panel-2: #22271f;
-  --line: #2e3429;
-  --line-2: #3d4536;
+  /* surfaces are lifted well above the tinted background art so boxes read
+     clearly on top of it */
+  --bg-2: #1d2119;
+  --panel: #262b22;
+  --panel-2: #2e3429;
+  --line: #3f4738;
+  --line-2: #525c49;
+  --line-hover: #66715a;
   --text: #ebe6d6;
   --muted: #a2a794;
   --dim: #707665;
@@ -186,7 +189,7 @@ a {
 }
 .btn:hover:not(:disabled) {
   background: var(--line);
-  border-color: #4c5542;
+  border-color: var(--line-hover);
 }
 .btn:active:not(:disabled) {
   transform: translateY(1px);

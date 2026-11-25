@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/reza-darius/ironlobby/internal/database/sqlc"
 	"github.com/reza-darius/ironlobby/internal/utils"
 	"github.com/stretchr/testify/assert"
 )
 
-
-var testDB *Queries
+var testDB *sqlc.Queries
 
 func TestMain(m *testing.M) {
 	utils.InitLogging()
@@ -21,7 +21,7 @@ func TestMain(m *testing.M) {
 
 	db, pg := NewTestDBContainer()
 
-	testDB = New(db.pool)
+	testDB = sqlc.New(db.pool)
 
 	code := m.Run()
 
@@ -60,18 +60,18 @@ func TestInsert(t *testing.T) {
 	}
 	assert.Equal(t, len(allPlayers), 3)
 
-	lobby, err := testDB.InsertLobby(ctx, InsertLobbyParams{
+	lobby, err := testDB.InsertLobby(ctx, sqlc.InsertLobbyParams{
 		HostPlayer: hostID,
 		LobbyName:  "test lobby",
 		StartsAt:   time.Now().AddDate(0, 0, 7),
-		Gamemode:   GamemodeVanilla,
+		Gamemode:   sqlc.GamemodeVanilla,
 	})
 	if err != nil {
 		t.Fatalf("failed to create lobby %v", err)
 	}
 	t.Logf("lobby created: %v", lobby)
 
-	_, err = testDB.UpsertLobbyCountry(ctx, UpsertLobbyCountryParams{
+	_, err = testDB.UpsertLobbyCountry(ctx, sqlc.UpsertLobbyCountryParams{
 		LobbyID:    lobby.ID,
 		CountryTag: "GER",
 		MaxSlots:   2,
@@ -79,7 +79,7 @@ func TestInsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to add lobby country GER %v", err)
 	}
-	_, err = testDB.UpsertLobbyCountry(ctx, UpsertLobbyCountryParams{
+	_, err = testDB.UpsertLobbyCountry(ctx, sqlc.UpsertLobbyCountryParams{
 		LobbyID:    lobby.ID,
 		CountryTag: "SOV",
 		MaxSlots:   1,
@@ -87,7 +87,7 @@ func TestInsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to add lobby country SOV %v", err)
 	}
-	_, err = testDB.UpsertLobbyCountry(ctx, UpsertLobbyCountryParams{
+	_, err = testDB.UpsertLobbyCountry(ctx, sqlc.UpsertLobbyCountryParams{
 		LobbyID:    lobby.ID,
 		CountryTag: "JAP",
 		MaxSlots:   1,
@@ -107,7 +107,7 @@ func TestInsert(t *testing.T) {
 		t.Logf("lobby country row: tag = %v, max_slots = %v", row.CountryTag, row.MaxSlots)
 	}
 
-	_, err = testDB.UpsertLobbyPlayer(ctx, UpsertLobbyPlayerParams{
+	_, err = testDB.UpsertLobbyPlayer(ctx, sqlc.UpsertLobbyPlayerParams{
 		LobbyID:    lobby.ID,
 		CountryTag: "GER",
 		PlayerID:   regPlayer["pray"],
@@ -115,7 +115,7 @@ func TestInsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to register pray to GER %v", err)
 	}
-	_, err = testDB.UpsertLobbyPlayer(ctx, UpsertLobbyPlayerParams{
+	_, err = testDB.UpsertLobbyPlayer(ctx, sqlc.UpsertLobbyPlayerParams{
 		LobbyID:    lobby.ID,
 		CountryTag: "JAP",
 		PlayerID:   regPlayer["inno"],
@@ -123,7 +123,7 @@ func TestInsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to register inno to JAP %v", err)
 	}
-	_, err = testDB.UpsertLobbyPlayer(ctx, UpsertLobbyPlayerParams{
+	_, err = testDB.UpsertLobbyPlayer(ctx, sqlc.UpsertLobbyPlayerParams{
 		LobbyID:    lobby.ID,
 		CountryTag: "SOV",
 		PlayerID:   regPlayer["skrt"],

@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/reza-darius/ironlobby/internal/database"
+	"github.com/reza-darius/ironlobby/internal/database/sqlc"
 )
 
 func (app *Application) healthcheck(w http.ResponseWriter, r *http.Request) {
@@ -217,7 +218,7 @@ func (app *Application) newLobby(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *Application) joinLobby(w http.ResponseWriter, r *http.Request) {
-	joinParams, err := decode[database.UpsertLobbyPlayerParams](r)
+	joinParams, err := decode[sqlc.UpsertLobbyPlayerParams](r)
 	if err != nil {
 		slog.Error("join lobby request body decode error", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -268,7 +269,7 @@ func (app *Application) leaveLobby(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid ids provided", http.StatusBadRequest)
 		return
 	}
-	err = app.db.DeleteLobbyPlayer(ctx, database.DeleteLobbyPlayerParams{
+	err = app.db.DeleteLobbyPlayer(ctx, sqlc.DeleteLobbyPlayerParams{
 		PlayerID: playerID,
 		LobbyID:  lobbyID,
 	})
@@ -299,7 +300,7 @@ func (app *Application) updateLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updateParams, err := decode[database.UpdateLobbyParams](r)
+	updateParams, err := decode[sqlc.UpdateLobbyParams](r)
 	if err != nil {
 		slog.Error("update lobby request body decode error", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -327,7 +328,7 @@ func (app *Application) addLobbyCountry(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// parse body
-	addLobbyCountryParams, err := decode[database.UpsertLobbyCountryParams](r)
+	addLobbyCountryParams, err := decode[sqlc.UpsertLobbyCountryParams](r)
 	if err != nil {
 		slog.Error("add lobby country request body decode error", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -373,7 +374,7 @@ func (app *Application) deleteLobbyCountry(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err = app.db.DeleteLobbyCountry(ctx, database.DeleteLobbyCountryParams{
+	err = app.db.DeleteLobbyCountry(ctx, sqlc.DeleteLobbyCountryParams{
 		LobbyID:    lobbyID,
 		CountryTag: tag,
 	})
@@ -412,7 +413,7 @@ func (app *Application) updateLobbyCountry(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	args, err := decode[database.UpdateLobbyCountryParams](r)
+	args, err := decode[sqlc.UpdateLobbyCountryParams](r)
 	if err != nil {
 		slog.Error("delet lobby country request body decode error", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)

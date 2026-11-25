@@ -18,6 +18,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/reza-darius/ironlobby/internal/database"
+	"github.com/reza-darius/ironlobby/internal/database/sqlc"
 	"github.com/reza-darius/ironlobby/internal/utils"
 	"github.com/stretchr/testify/assert"
 )
@@ -70,7 +71,7 @@ func NewTestUser(srv *httptest.Server, name string) error {
 	return nil
 }
 
-func CreateTestLobby(srv *httptest.Server, lobby *database.InsertLobbyParams, countries []database.UpsertLobbyCountryParams) (int64, error) {
+func CreateTestLobby(srv *httptest.Server, lobby *sqlc.InsertLobbyParams, countries []sqlc.UpsertLobbyCountryParams) (int64, error) {
 	// Golang stores time in nanoseconds, and postgres in microseconds
 	// this truncation is only necessary for testing to test the output
 	lobby.StartsAt = lobby.StartsAt.Truncate(time.Microsecond)
@@ -106,7 +107,7 @@ func CreateTestLobby(srv *httptest.Server, lobby *database.InsertLobbyParams, co
 	return newLobbyRes.LobbyID, nil
 }
 
-func AddTestCountry(srv *httptest.Server, args *database.UpsertLobbyCountryParams) error {
+func AddTestCountry(srv *httptest.Server, args *sqlc.UpsertLobbyCountryParams) error {
 	addCountryJSON, err := json.Marshal(args)
 	if err != nil {
 		return err
@@ -198,10 +199,10 @@ func TestCreateLobby(t *testing.T) {
 
 	// Golang stores time in nanoseconds, and postgres in microseconds
 	// this truncation is only necessary for testing
-	lobbyCreateBody := database.InsertLobbyParams{
+	lobbyCreateBody := sqlc.InsertLobbyParams{
 		LobbyName:   "Historical PVP",
 		StartsAt:    time.Now().AddDate(0, 0, 7),
-		Gamemode:    database.GamemodeVanilla,
+		Gamemode:    sqlc.GamemodeVanilla,
 		Description: "schizo lobby",
 	}
 
@@ -250,15 +251,15 @@ func TestCreateLobbyWithCountries(t *testing.T) {
 
 	// Golang stores time in nanoseconds, and postgres in microseconds
 	// this truncation is only necessary for testing
-	lobbyCreateBody := database.InsertLobbyParams{
+	lobbyCreateBody := sqlc.InsertLobbyParams{
 		LobbyName:   "Historical PVP",
 		StartsAt:    time.Now().AddDate(0, 0, 7),
-		Gamemode:    database.GamemodeVanilla,
+		Gamemode:    sqlc.GamemodeVanilla,
 		Description: "schizo lobby",
 	}
 
 	// create new lobby
-	lobbyID, err := CreateTestLobby(srv, &lobbyCreateBody, []database.UpsertLobbyCountryParams{
+	lobbyID, err := CreateTestLobby(srv, &lobbyCreateBody, []sqlc.UpsertLobbyCountryParams{
 		{
 			CountryTag: "GER",
 			MaxSlots:   1,
@@ -311,10 +312,10 @@ func TestJoinLeaveLobby(t *testing.T) {
 		t.Fatalf("failed to create user, err: %v", err)
 	}
 
-	lobbyCreateBody := database.InsertLobbyParams{
+	lobbyCreateBody := sqlc.InsertLobbyParams{
 		LobbyName:   "Historical PVP",
 		StartsAt:    time.Now().AddDate(0, 0, 7),
-		Gamemode:    database.GamemodeVanilla,
+		Gamemode:    sqlc.GamemodeVanilla,
 		Description: "schizo lobby",
 	}
 
@@ -324,7 +325,7 @@ func TestJoinLeaveLobby(t *testing.T) {
 	}
 
 	// join lobby fail
-	joinParam := database.UpsertLobbyPlayerParams{
+	joinParam := sqlc.UpsertLobbyPlayerParams{
 		CountryTag: "GER",
 	}
 
@@ -345,7 +346,7 @@ func TestJoinLeaveLobby(t *testing.T) {
 	}
 
 	// add countries GER and ITA
-	addCountryParam := database.UpsertLobbyCountryParams{
+	addCountryParam := sqlc.UpsertLobbyCountryParams{
 		LobbyID:    lobbyID,
 		CountryTag: "GER",
 		MaxSlots:   1,
@@ -402,7 +403,7 @@ func TestJoinLeaveLobby(t *testing.T) {
 	// assert.Equal(t, lobbyID, lobbyInfo.Players[0].LobbyID)
 
 	// swap slots
-	joinParam = database.UpsertLobbyPlayerParams{
+	joinParam = sqlc.UpsertLobbyPlayerParams{
 		CountryTag: "ITA",
 	}
 
@@ -492,10 +493,10 @@ func TestUpdateLobby(t *testing.T) {
 		t.Fatalf("failed to create user %v", err)
 	}
 
-	lobbyCreateBody := database.InsertLobbyParams{
+	lobbyCreateBody := sqlc.InsertLobbyParams{
 		LobbyName:   "Historical PVP",
 		StartsAt:    time.Now().AddDate(0, 0, 7),
-		Gamemode:    database.GamemodeVanilla,
+		Gamemode:    sqlc.GamemodeVanilla,
 		Description: "schizo lobby",
 	}
 
@@ -506,7 +507,7 @@ func TestUpdateLobby(t *testing.T) {
 
 	// update lobby description
 	newLobbyName := "new lobby name"
-	lobbyUpdateParams := database.UpdateLobbyParams{
+	lobbyUpdateParams := sqlc.UpdateLobbyParams{
 		LobbyName: pgtype.Text{
 			String: newLobbyName,
 			Valid:  true,
@@ -552,7 +553,7 @@ func TestUpdateLobby(t *testing.T) {
 	}
 
 	// add country
-	err = AddTestCountry(srv, &database.UpsertLobbyCountryParams{
+	err = AddTestCountry(srv, &sqlc.UpsertLobbyCountryParams{
 		LobbyID:    lobbyID,
 		CountryTag: "GER",
 		MaxSlots:   1,
@@ -562,7 +563,7 @@ func TestUpdateLobby(t *testing.T) {
 	}
 
 	// update country to two slots
-	reqBody := database.UpdateLobbyCountryParams{
+	reqBody := sqlc.UpdateLobbyCountryParams{
 		MaxSlots: 2,
 	}
 	out, err = json.Marshal(reqBody)
@@ -611,10 +612,10 @@ func TestDeleteLobby(t *testing.T) {
 		t.Fatalf("failed to create user %v", err)
 	}
 
-	lobbyCreateBody := database.InsertLobbyParams{
+	lobbyCreateBody := sqlc.InsertLobbyParams{
 		LobbyName:   "Historical PVP",
 		StartsAt:    time.Now().AddDate(0, 0, 7),
-		Gamemode:    database.GamemodeVanilla,
+		Gamemode:    sqlc.GamemodeVanilla,
 		Description: "schizo lobby",
 	}
 
@@ -624,7 +625,7 @@ func TestDeleteLobby(t *testing.T) {
 	}
 
 	// add GER
-	err = AddTestCountry(srv, &database.UpsertLobbyCountryParams{
+	err = AddTestCountry(srv, &sqlc.UpsertLobbyCountryParams{
 		LobbyID:    lobbyID,
 		CountryTag: "GER",
 		MaxSlots:   1,

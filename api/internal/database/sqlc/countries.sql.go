@@ -3,7 +3,7 @@
 //   sqlc v1.31.1
 // source: countries.sql
 
-package database
+package sqlc
 
 import (
 	"context"

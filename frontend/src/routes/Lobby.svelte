@@ -97,9 +97,16 @@
   $effect(() => {
     if (!lobby) return
     const role: Role = host ? 'host' : mine ? 'player' : 'visitor'
+    const tag = mine?.country_tag ?? null
     const prev = me.recent.find((r) => r.id === lobby.id)
-    if (!prev || prev.role !== role || prev.name !== lobby.lobby_name || prev.starts_at !== lobby.starts_at) {
-      rememberLobby({ id: lobby.id, name: lobby.lobby_name, starts_at: lobby.starts_at, role })
+    if (
+      !prev ||
+      prev.role !== role ||
+      prev.tag !== tag ||
+      prev.name !== lobby.lobby_name ||
+      prev.starts_at !== lobby.starts_at
+    ) {
+      rememberLobby({ id: lobby.id, name: lobby.lobby_name, starts_at: lobby.starts_at, role, tag })
     }
   })
 

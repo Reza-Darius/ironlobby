@@ -16,6 +16,8 @@ export interface RecentLobby {
   name: string
   starts_at: string
   role: Role
+  /** nation you're seated on, if any */
+  tag?: string | null
 }
 
 interface Stored {
@@ -62,6 +64,16 @@ export function markHosted(id: number) {
 export function rememberLobby(entry: RecentLobby) {
   const rest = me.recent.filter((r) => r.id !== entry.id)
   me.recent = [entry, ...rest].slice(0, 12)
+  save()
+}
+
+/** Update an entry in place without reordering the list. */
+export function patchLobby(id: number, patch: Partial<RecentLobby>) {
+  const r = me.recent.find((r) => r.id === id)
+  if (!r) return
+  const changed = (Object.keys(patch) as (keyof RecentLobby)[]).some((k) => r[k] !== patch[k])
+  if (!changed) return
+  Object.assign(r, patch)
   save()
 }
 

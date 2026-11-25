@@ -81,10 +81,10 @@
     color: var(--text);
   }
   .word {
-    font-family: var(--display);
-    font-weight: 600;
+    font-family: var(--logo);
+    font-weight: 400;
     font-size: 18px;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
   }
   .callsign {

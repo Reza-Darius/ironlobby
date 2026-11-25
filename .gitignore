@@ -1,2 +1,5 @@
 *.db*
 
+
+# just up/down runtime files
+.run/

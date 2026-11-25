@@ -1,8 +1,13 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
+  import Flag from '../components/Flag.svelte'
   import Icon from '../components/Icon.svelte'
-  import { forgetLobby, me } from '../lib/identity.svelte'
+  import Modal from '../components/Modal.svelte'
+  import { api, ApiError } from '../lib/api'
+  import { forgetLobby, isHost, me, patchLobby, type RecentLobby } from '../lib/identity.svelte'
   import { navigate, parseLobbyRef } from '../lib/router.svelte'
-  import { clock } from '../lib/state.svelte'
+  import { clock, nameOf, toast, toastError } from '../lib/state.svelte'
+  import type { LobbyPlayer } from '../lib/types'
   import { countdown, formatDate } from '../lib/time'
 
   let ref = $state('')
@@ -25,17 +30,71 @@
     }),
   )
 
+  // Removing a lobby from the list also gives up your slot in it. We ask the
+  // server whether you're actually seated rather than trusting the stored role.
+  let removing = $state<{ lobby: RecentLobby; seat: LobbyPlayer | null } | null>(null)
+  let removeOpen = $state(false)
+  let removeBusy = $state(false)
+
+  async function askRemove(lobby: RecentLobby) {
+    if (lobby.role === 'visitor') return forgetLobby(lobby.id)
+    let seat: LobbyPlayer | null = null
+    try {
+      const info = await api.lobby(lobby.id)
+      seat = info.players?.find((p) => p.player_name === me.callsign) ?? null
+    } catch {
+      // lobby is gone (or unreachable): nothing to leave
+      return forgetLobby(lobby.id)
+    }
+    removing = { lobby, seat }
+    removeOpen = true
+  }
+
+  async function confirmRemove() {
+    if (!removing) return
+    const { lobby, seat } = removing
+    removeBusy = true
+    try {
+      if (seat) {
+        try {
+          await api.leave(lobby.id)
+        } catch (e) {
+          // 404: already gone from the lobby, which is what we want anyway
+          if (!(e instanceof ApiError && e.status === 404)) throw e
+        }
+      }
+      forgetLobby(lobby.id)
+      removeOpen = false
+      toast(seat ? `You left ${lobby.name}.` : `${lobby.name} removed from your list.`)
+    } catch (e) {
+      toastError(e)
+    } finally {
+      removeBusy = false
+    }
+  }
+
+  // Refresh the list from the server once on load: picks up nation switches,
+  // renames and time changes made elsewhere since the lobby was last opened.
+  onMount(() => {
+    for (const r of me.recent) {
+      if (r.role === 'visitor') continue
+      api
+        .lobby(r.id)
+        .then((info) => {
+          const seat = info.players?.find((p) => p.player_name === me.callsign) ?? null
+          patchLobby(r.id, {
+            name: info.lobby.lobby_name,
+            starts_at: info.lobby.starts_at,
+            tag: seat?.country_tag ?? null,
+            role: isHost(info.lobby) ? 'host' : seat ? 'player' : 'visitor',
+          })
+        })
+        .catch(() => {})
+    }
+  })
+
   const ROLE_LABEL = { host: 'Hosting', player: 'Playing', visitor: 'Viewed' } as const
 </script>
-
-<section class="hero">
-  <p class="kicker">Hearts of Iron IV · Multiplayer</p>
-  <h1>Organise your game night<br /><span>before the war starts.</span></h1>
-  <p class="lede muted">
-    Host a lobby, set the start time and rules, open up nations, and share one link. Players claim their country, and
-    the in-game ID goes out when it's time to launch.
-  </p>
-</section>
 
 <section class="modes">
   <a href="/new" class="mode panel host">
@@ -75,8 +134,12 @@
       {#each upcoming as r (r.id)}
         {@const cd = countdown(r.starts_at, clock.now)}
         <li class="panel" class:past={cd.state === 'past'}>
+          <span class="recent-flag">
+            {#if r.tag}<Flag tag={r.tag} size="lg" />{/if}
+          </span>
           <a href="/lobby/{r.id}" class="recent-link">
             <span class="recent-name">{r.name}</span>
+            {#if r.tag}<span class="recent-nation">Playing {nameOf(r.tag)}</span>{/if}
             <span class="recent-meta muted">
               <Icon name="calendar" size={13} />
               {formatDate(r.starts_at)}
@@ -85,7 +148,12 @@
             </span>
           </a>
           <span class="badge" class:accent={r.role === 'host'} class:ok={r.role === 'player'}>{ROLE_LABEL[r.role]}</span>
-          <button class="btn icon sm ghost" aria-label="Remove from list" title="Remove from list" onclick={() => forgetLobby(r.id)}>
+          <button
+            class="btn icon sm ghost"
+            aria-label={r.role === 'visitor' ? 'Remove from list' : 'Leave lobby'}
+            title={r.role === 'visitor' ? 'Remove from list' : 'Leave lobby'}
+            onclick={() => askRemove(r)}
+          >
             <Icon name="x" size={14} />
           </button>
         </li>
@@ -94,24 +162,38 @@
   </section>
 {/if}
 
+<Modal
+  bind:open={removeOpen}
+  title={removing ? (removing.seat ? `Leave ${removing.lobby.name}?` : `Remove ${removing.lobby.name}?`) : ''}
+>
+  {#if removing}
+    <div class="stack">
+      <p class="muted">
+        {#if removing.seat}
+          You'll give up your slot on <strong>{nameOf(removing.seat.country_tag)}</strong> and the lobby disappears from
+          your list.
+        {/if}
+        {#if removing.lobby.role === 'host'}
+          {removing.seat ? 'As host, the lobby itself stays up for the other players.' : 'This only removes it from your list. The lobby stays up for the other players.'}
+          Deleting lobbies isn't supported yet.
+        {/if}
+      </p>
+      <div class="row end">
+        <button class="btn ghost" onclick={() => (removeOpen = false)}>Cancel</button>
+        <button class="btn solid-danger" onclick={confirmRemove} disabled={removeBusy}>
+          {removing.seat ? 'Leave lobby' : 'Remove'}
+        </button>
+      </div>
+    </div>
+  {/if}
+</Modal>
+
 <style>
-  .hero {
-    padding: 28px 0 32px;
-    max-width: 720px;
+  .modes {
+    margin-top: 32px;
   }
-  h1 {
-    font-size: clamp(32px, 6vw, 52px);
-    text-transform: uppercase;
-    margin-top: 12px;
-    letter-spacing: 0.005em;
-  }
-  h1 span {
-    color: var(--accent);
-  }
-  .lede {
-    margin-top: 16px;
-    font-size: 16.5px;
-    max-width: 600px;
+  .end {
+    justify-content: flex-end;
   }
   .modes {
     display: grid;
@@ -195,6 +277,24 @@
     flex-direction: column;
     padding: 6px 10px;
     color: inherit;
+  }
+  .recent-flag {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    margin-left: 10px;
+    flex-shrink: 0;
+  }
+  .recent-flag:empty {
+    /* no nation: a faint empty frame keeps names aligned */
+    height: 27px;
+    border: 1px dashed var(--line-2);
+    border-radius: 4px;
+  }
+  .recent-nation {
+    font-size: 13px;
+    color: var(--accent-2);
+    font-weight: 500;
   }
   .recent-name {
     font-weight: 600;

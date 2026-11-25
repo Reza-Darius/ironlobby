@@ -206,13 +206,10 @@
     gap: 16px;
     padding: 22px;
     color: inherit;
-    transition:
-      border-color 0.15s,
-      transform 0.15s;
+    transition: border-color 0.15s;
   }
   .mode.host:hover {
     border-color: rgb(214 170 76 / 0.5);
-    transform: translateY(-2px);
   }
   .mode-icon {
     display: grid;
@@ -262,10 +259,10 @@
     align-items: center;
     gap: 10px;
     padding: 6px 8px 6px 4px;
-    transition: border-color 0.12s;
+    transition: border-color 0.15s;
   }
   .recent li:hover {
-    border-color: var(--line-2);
+    border-color: rgb(214 170 76 / 0.5);
   }
   .recent li.past {
     opacity: 0.6;

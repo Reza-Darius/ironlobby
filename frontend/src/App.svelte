@@ -63,8 +63,7 @@
     position: sticky;
     top: 0;
     z-index: 10;
-    background: rgb(17 19 16 / 0.82);
-    backdrop-filter: blur(10px);
+    background: var(--bg-2);
     border-bottom: 1px solid var(--line);
   }
   .inner {

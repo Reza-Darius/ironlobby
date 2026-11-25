@@ -67,7 +67,9 @@
     background: rgb(5 6 4 / 0.7);
     backdrop-filter: blur(3px);
   }
-  dialog[open] .sheet {
+  /* animate the dialog itself, not .sheet: moving the sheet inside the
+     dialog overflows it for a frame and flashes a scrollbar */
+  dialog[open] {
     animation: rise 0.18s ease-out;
   }
   .sheet {

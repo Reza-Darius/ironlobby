@@ -37,6 +37,8 @@
     onpick(tag)
     query = ''
     active = 0
+    // close after a pick; typing, clicking the field or ArrowDown reopens it
+    open = false
   }
 
   function onkeydown(e: KeyboardEvent) {
@@ -72,6 +74,7 @@
       bind:value={query}
       {placeholder}
       onfocus={() => (open = true)}
+      onclick={() => (open = true)}
       onblur={() => setTimeout(() => (open = false), 120)}
       oninput={() => (open = true)}
       {onkeydown}

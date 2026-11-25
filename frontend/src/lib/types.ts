@@ -28,6 +28,7 @@ export interface LobbyPlayer {
   country_tag: string
   note: string | null
   joined_at: string
+  is_host: boolean
 }
 
 /** Go encodes empty slices as null, so both lists are nullable. */

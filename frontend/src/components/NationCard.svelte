@@ -54,6 +54,7 @@
         <div class="who">
           <span class="pname">
             {p.player_name}
+            {#if p.is_host}<span class="host-mark" title="Host" aria-label="Host"><Icon name="crown" size={13} /></span>{/if}
             {#if p.player_name === myName}<span class="you">you</span>{/if}
           </span>
           {#if p.note}<span class="note">“{p.note}”</span>{/if}
@@ -253,6 +254,12 @@
   .pname {
     font-weight: 500;
     overflow-wrap: anywhere;
+  }
+  .host-mark {
+    display: inline-flex;
+    vertical-align: -2px;
+    margin-left: 4px;
+    color: var(--accent);
   }
   .you {
     margin-left: 4px;

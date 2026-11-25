@@ -157,10 +157,12 @@ SELECT
     player.player_name,
     countries.country_tag,
     pl.note,
-    pl.joined_at
+    pl.joined_at,
+    (pl.player_id = lobby.host_player)::boolean AS is_host
 FROM player_lobby AS pl
 JOIN countries ON pl.country_id = countries.id
 JOIN player ON pl.player_id = player.id
+JOIN lobby ON pl.lobby_id = lobby.id
 WHERE pl.lobby_id = $1
 `
 
@@ -169,6 +171,7 @@ type GetLobbyPlayersRow struct {
 	CountryTag string      `json:"country_tag"`
 	Note       pgtype.Text `json:"note"`
 	JoinedAt   time.Time   `json:"joined_at"`
+	IsHost     bool        `json:"is_host"`
 }
 
 func (q *Queries) GetLobbyPlayers(ctx context.Context, lobbyID int64) ([]GetLobbyPlayersRow, error) {
@@ -185,6 +188,7 @@ func (q *Queries) GetLobbyPlayers(ctx context.Context, lobbyID int64) ([]GetLobb
 			&i.CountryTag,
 			&i.Note,
 			&i.JoinedAt,
+			&i.IsHost,
 		); err != nil {
 			return nil, err
 		}

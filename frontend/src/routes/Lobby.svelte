@@ -784,7 +784,7 @@
   }
   .launch.ready {
     border-color: rgb(134 180 111 / 0.45);
-    background: linear-gradient(180deg, rgb(134 180 111 / 0.08), var(--panel) 70%);
+    background: #1e2619;
   }
   .launch.ready .side-title {
     color: var(--ok);

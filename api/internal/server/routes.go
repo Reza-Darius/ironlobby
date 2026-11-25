@@ -2,10 +2,13 @@ package server
 
 import (
 	"log/slog"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
+
+const TIMEOUT = time.Second * 20
 
 func (app *Application) routes() *chi.Mux {
 	r := chi.NewRouter()
@@ -13,6 +16,8 @@ func (app *Application) routes() *chi.Mux {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 	r.Use(secureHeaders)
+
+	r.Use(timeoutHandler(TIMEOUT))
 
 	if app.config.DebugCors {
 		slog.Info("CORS debug enabled")

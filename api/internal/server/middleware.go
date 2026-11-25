@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"math"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -82,6 +83,13 @@ func (app *Application) AuthHost(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+// timeoutHandler is a middleware to add http.timeoutHandler.
+func timeoutHandler(timeout time.Duration) func(next http.Handler) http.Handler {
+    return func(next http.Handler) http.Handler {
+        return http.TimeoutHandler(next, timeout, "")
+    }
 }
 
 func WriteUserCookie(w http.ResponseWriter, userID uuid.UUID, debug bool) {

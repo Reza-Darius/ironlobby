@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -40,9 +41,9 @@ func (app *Application) newUser(w http.ResponseWriter, r *http.Request) {
 
 	id, err := app.db.NewUser(r.Context(), username.Username)
 	if err != nil {
-		switch err {
+		switch {
 
-		case database.ErrUserExists:
+		case errors.Is(err, database.ErrUserExists):
 			{
 				http.Error(w, "user already exists", http.StatusConflict)
 			}
@@ -82,8 +83,8 @@ func (app *Application) getLobby(w http.ResponseWriter, r *http.Request) {
 
 	lobby, err := app.db.GetLobby(r.Context(), lobbyID)
 	if err != nil {
-		switch err {
-		case database.ErrLobbyDoesntExists:
+		switch {
+		case errors.Is(err, database.ErrLobbyDoesntExists):
 			{
 				http.Error(w, "lobby not found", http.StatusNotFound)
 			}
@@ -109,8 +110,8 @@ func (app *Application) getLobbyCountries(w http.ResponseWriter, r *http.Request
 
 	lobby, err := app.db.GetLobbyCountries(r.Context(), lobbyID)
 	if err != nil {
-		switch err {
-		case database.ErrLobbyDoesntExists:
+		switch {
+		case errors.Is(err, database.ErrLobbyDoesntExists):
 			{
 				http.Error(w, "lobby not found", http.StatusNotFound)
 			}
@@ -136,8 +137,8 @@ func (app *Application) getLobbyPlayers(w http.ResponseWriter, r *http.Request) 
 
 	lobby, err := app.db.GetLobbyPlayers(r.Context(), lobbyID)
 	if err != nil {
-		switch err {
-		case database.ErrLobbyDoesntExists:
+		switch {
+		case errors.Is(err, database.ErrLobbyDoesntExists):
 			{
 				http.Error(w, "lobby not found", http.StatusNotFound)
 			}
@@ -167,9 +168,9 @@ func (app *Application) newLobby(w http.ResponseWriter, r *http.Request) {
 
 	lobby, err := app.db.NewLobby(r.Context(), lobbyParams)
 	if err != nil {
-		switch err {
+		switch {
 
-		case database.ErrLobbyExists:
+		case errors.Is(err, database.ErrLobbyExists):
 			{
 				http.Error(w, "lobby already exists", http.StatusConflict)
 			}
@@ -213,13 +214,13 @@ func (app *Application) joinLobby(w http.ResponseWriter, r *http.Request) {
 
 	err = app.db.UpsertLobbyPlayer(r.Context(), joinParams)
 	if err != nil {
-		switch err {
-		case database.ErrNationSlotsFull:
+		switch {
+		case errors.Is(err, database.ErrNationSlotsFull):
 			{
 				http.Error(w, "requested nation is full", http.StatusBadRequest)
 				return
 			}
-		case database.ErrNationNotAvail:
+		case errors.Is(err, database.ErrNationNotAvail):
 			{
 				http.Error(w, "requested nation is unavailable", http.StatusBadRequest)
 				return
@@ -251,8 +252,8 @@ func (app *Application) leaveLobby(w http.ResponseWriter, r *http.Request) {
 		LobbyID:  lobbyID,
 	})
 	if err != nil {
-		switch err {
-		case database.ErrUserNotFound:
+		switch {
+		case errors.Is(err, database.ErrUserNotFound):
 			{
 				http.Error(w, "requested player doesnt exist in lobby or lobby doesnt exist", http.StatusNotFound)
 				return
@@ -316,8 +317,8 @@ func (app *Application) addLobbyCountry(w http.ResponseWriter, r *http.Request) 
 
 	err = app.db.AddLobbyCountry(ctx, addLobbyCountryParams)
 	if err != nil {
-		switch err {
-		case database.ErrCountryDoesntExist:
+		switch {
+		case errors.Is(err, database.ErrCountryDoesntExist):
 			{
 				http.Error(w, "requested country doesnt exist", http.StatusNotFound)
 				return
@@ -357,8 +358,8 @@ func (app *Application) deleteLobbyCountry(w http.ResponseWriter, r *http.Reques
 		CountryTag: tag,
 	})
 	if err != nil {
-		switch err {
-		case database.ErrCountryDoesntExist:
+		switch {
+		case errors.Is(err, database.ErrCountryDoesntExist):
 			{
 				http.Error(w, "requested country or lobby doesnt exist", http.StatusNotFound)
 				return
@@ -404,8 +405,8 @@ func (app *Application) updateLobbyCountry(w http.ResponseWriter, r *http.Reques
 
 	err = app.db.UpdateLobbyCountry(ctx, args)
 	if err != nil {
-		switch err {
-		case database.ErrCountryDoesntExist:
+		switch {
+		case errors.Is(err, database.ErrCountryDoesntExist):
 			{
 				http.Error(w, "requested country or lobby doesnt exist", http.StatusNotFound)
 				return

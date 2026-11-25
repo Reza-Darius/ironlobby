@@ -167,8 +167,12 @@ func (db *Database) GetLobby(ctx context.Context, lobbyID int64) (LobbyInfo, err
 	q := sqlc.New(db.pool)
 	lobby, err := q.GetLobby(ctx, lobbyID)
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			return LobbyInfo{}, ErrLobbyDoesntExists
+		}
 		return LobbyInfo{}, err
 	}
+
 	lobbyCountries, err := q.GetLobbyCountries(ctx, lobbyID)
 	if err != nil {
 		return LobbyInfo{}, err

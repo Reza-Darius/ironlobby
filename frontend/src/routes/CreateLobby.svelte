@@ -82,7 +82,6 @@
 <a href="/" class="back btn ghost sm"><Icon name="back" size={14} />Back</a>
 
 <header class="head">
-  <p class="kicker">New lobby</p>
   <h1>Host a game</h1>
 </header>
 
@@ -142,12 +141,7 @@
   </section>
 
   <section class="panel card">
-    <div class="card-title-row">
-      <h2 class="card-title"><span class="num">2</span>Nations</h2>
-      {#if nations.length}
-        <span class="badge">{nations.length} nations · {totalSlots} slots</span>
-      {/if}
-    </div>
+    <h2 class="card-title"><span class="num">2</span>Nations</h2>
     <p class="muted small">Players can only claim the nations you open. Use slots for co-op (e.g. 2 players on SOV).</p>
 
     <div class="presets">
@@ -179,7 +173,10 @@
           </li>
         {/each}
       </ul>
-      <button type="button" class="btn ghost sm clear" onclick={() => (nations = [])}>Clear all</button>
+      <div class="list-footer">
+        <button type="button" class="btn ghost sm" onclick={() => (nations = [])}>Clear all</button>
+        <span class="badge">{nations.length} nations · {totalSlots} slots</span>
+      </div>
     {:else}
       <div class="empty" class:invalid={!!errors.nations}>
         <Icon name="flag" size={20} />
@@ -236,13 +233,6 @@
     font-size: 19px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-  }
-  .card-title-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    flex-wrap: wrap;
   }
   .num {
     display: grid;
@@ -355,8 +345,11 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .clear {
-    align-self: flex-start;
+  .list-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
     margin-top: -8px;
   }
   .empty {
@@ -379,7 +372,6 @@
     display: flex;
     justify-content: flex-end;
     padding: 14px 0;
-    background: linear-gradient(transparent, var(--bg) 40%);
   }
   @media (max-width: 600px) {
     .submit-bar .btn {

@@ -195,6 +195,33 @@ func (app *Application) newLobby(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusCreated, newLobbyRes)
 }
 
+func (app *Application) deleteLobby(w http.ResponseWriter, r *http.Request) {
+	lobbyID, err := getLobbyID(r)
+	if err != nil {
+		http.Error(w, "couldnt retrieve lobby id", http.StatusBadRequest)
+		return
+	}
+
+	err = app.db.DeleteLobby(r.Context(), lobbyID)
+	if err != nil {
+		switch {
+		case errors.Is(err, database.ErrLobbyDoesntExists):
+			{
+				http.Error(w, "lobby not found", http.StatusNotFound)
+			}
+
+		default:
+			{
+				slog.Error("error when deleting lobby", "err", err)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+			}
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 func (app *Application) joinLobby(w http.ResponseWriter, r *http.Request) {
 	joinParams, err := decode[sqlc.UpsertLobbyPlayerParams](r)
 	if err != nil {

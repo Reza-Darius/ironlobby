@@ -35,6 +35,10 @@ INSERT INTO lobby (
 VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
+-- name: DeleteLobby :execrows
+DELETE FROM lobby
+WHERE id = $1;
+
 -- name: UpsertLobbyCountry :one
 INSERT INTO lobby_countries (lobby_id, country_id, max_slots)
 SELECT

@@ -37,6 +37,19 @@ func (q *Queries) CountCountryOccupants(ctx context.Context, arg CountCountryOcc
 	return count, err
 }
 
+const deleteLobby = `-- name: DeleteLobby :execrows
+DELETE FROM lobby
+WHERE id = $1
+`
+
+func (q *Queries) DeleteLobby(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteLobby, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const deleteLobbyCountry = `-- name: DeleteLobbyCountry :one
 DELETE FROM lobby_countries
 WHERE lobby_id = $1 AND country_id = (

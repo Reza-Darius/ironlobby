@@ -63,6 +63,7 @@ func (db *Database) NewLobby(ctx context.Context, arg CreateLobbyRequest) (sqlc.
 		return sqlc.Lobby{}, err
 	}
 	defer tx.Rollback(ctx)
+
 	q := sqlc.New(db.pool).WithTx(tx)
 
 	lobby, err := q.InsertLobby(ctx, arg.Lobby)
@@ -256,6 +257,19 @@ func (db *Database) DeleteLobbyCountry(ctx context.Context, arg sqlc.DeleteLobby
 func (db *Database) UpdateLobby(ctx context.Context, arg sqlc.UpdateLobbyParams) error {
 	q := sqlc.New(db.pool)
 	_, err := q.UpdateLobby(ctx, arg)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (db *Database) DeleteLobby(ctx context.Context, arg int64) error {
+	q := sqlc.New(db.pool)
+	affected, err := q.DeleteLobby(ctx, arg)
+	if affected == 0 {
+		return ErrLobbyDoesntExists
+	}
+
 	if err != nil {
 		return err
 	}

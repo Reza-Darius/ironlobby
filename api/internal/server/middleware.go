@@ -42,7 +42,7 @@ func (app *Application) AuthSession(next http.Handler) http.Handler {
 			}
 
 			// validate user exists
-			_, err = app.db.GetUser(r.Context(), intUUID)
+			_, err = app.db.GetPlayer(r.Context(), intUUID)
 			if err != nil {
 				slog.Error("could not retrieve user from db", "err", err)
 				w.WriteHeader(http.StatusBadRequest)

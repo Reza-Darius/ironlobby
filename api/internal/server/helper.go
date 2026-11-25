@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
@@ -79,4 +80,16 @@ func getLobbyID(r *http.Request) (int64, error) {
 		return 0, err
 	}
 	return IDInt, nil
+}
+
+func getPlayerNameFromPath(r *http.Request) (string, error) {
+	playerName := chi.URLParam(r, "player_name")
+	if playerName == "" {
+		return "", errors.New("empty play name")
+	}
+	unescapedName, err := url.PathUnescape(playerName) 
+	if err != nil {
+		return "", errors.New("invalid name: path escapes")
+	}
+	return unescapedName, nil
 }

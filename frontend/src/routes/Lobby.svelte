@@ -205,6 +205,48 @@
     run(() => api.addCountry(id, tag, 1), '', `${nameOf(tag)} added.`)
   }
 
+  // host: players. Move by drag and drop (or the Move button), kick with ×.
+  let dragging = $state<LobbyPlayer | null>(null)
+  let moveTarget = $state<LobbyPlayer | null>(null)
+  let moveOpen = $state(false)
+
+  // every open nation in page order, with what's free on it
+  const moveChoices = $derived(
+    groups.flatMap((g) =>
+      g.nations.map((c) => ({
+        tag: c.country_tag,
+        taken: seats.get(c.country_tag)?.length ?? 0,
+        slots: c.max_slots,
+      })),
+    ),
+  )
+
+  function movePlayer(p: LobbyPlayer, tag: string) {
+    dragging = null
+    moveOpen = false
+    if (p.country_tag === tag) return
+    const name = p.player_name
+    // optimistic: the seat jumps right away; a refused move snaps back on refresh
+    const live = info?.players?.find((x) => x.player_name === name)
+    if (live) live.country_tag = tag
+    run(() => api.movePlayer(id, name, tag), '', `${name} moved to ${nameOf(tag)}.`)
+  }
+
+  function openMove(p: LobbyPlayer) {
+    moveTarget = p
+    moveOpen = true
+  }
+
+  function kickPlayer(p: LobbyPlayer) {
+    const name = p.player_name
+    ask({
+      title: `Kick ${name}?`,
+      body: `${name} loses their slot on ${nameOf(p.country_tag)}. They can still claim an open slot again.`,
+      label: 'Kick player',
+      action: () => run(() => api.kickPlayer(id, name), '', `${name} was kicked.`),
+    })
+  }
+
   // host: game id
   let editingGameId = $state(false)
   let gameIdDraft = $state('')
@@ -354,6 +396,12 @@
                   onleave={leave}
                   onslots={(v) => setSlots(c.country_tag, v)}
                   onremove={() => removeNation(c.country_tag)}
+                  {dragging}
+                  ondragseat={(p) => (dragging = p)}
+                  ondragdone={() => (dragging = null)}
+                  ondropseat={() => dragging && movePlayer(dragging, c.country_tag)}
+                  onmoveseat={openMove}
+                  onkick={kickPlayer}
                 />
               </div>
             {/each}
@@ -489,6 +537,43 @@
   {/if}
 </Modal>
 
+<!-- host: move a player (also the touch / keyboard path for drag and drop) -->
+<Modal
+  bind:open={moveOpen}
+  title={moveTarget ? `Move ${moveTarget.player_name}` : ''}
+  subtitle="Pick a nation with a free slot. Their note stays."
+>
+  {#if moveTarget}
+    {@const from = moveTarget.country_tag}
+    <div class="stack">
+      <ul class="move-list">
+        {#each moveChoices as m (m.tag)}
+          {@const current = m.tag === from}
+          {@const isFull = m.taken >= m.slots}
+          <li>
+            <button
+              type="button"
+              class="move-opt"
+              class:current
+              disabled={current || isFull || busy}
+              onclick={() => moveTarget && movePlayer(moveTarget, m.tag)}
+            >
+              <Flag tag={m.tag} size="sm" />
+              <span class="m-name">{nameOf(m.tag)}</span>
+              <span class="m-count">
+                {#if current}Current{:else if isFull}Full{:else}{m.taken} / {m.slots}{/if}
+              </span>
+            </button>
+          </li>
+        {/each}
+      </ul>
+      <div class="row end">
+        <button type="button" class="btn ghost" onclick={() => (moveOpen = false)}>Cancel</button>
+      </div>
+    </div>
+  {/if}
+</Modal>
+
 <!-- confirm -->
 <Modal bind:open={confirmOpen} title={confirm?.title ?? ''}>
   {#if confirm}
@@ -537,6 +622,59 @@
 </Modal>
 
 <style>
+  .move-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: min(420px, 55vh);
+    overflow-y: auto;
+  }
+  .move-opt {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--panel-2);
+    color: var(--text);
+    font: inherit;
+    font-size: 15px;
+    text-align: left;
+    cursor: pointer;
+    transition:
+      border-color 0.12s,
+      background 0.12s;
+  }
+  .move-opt:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: rgb(214 170 76 / 0.08);
+  }
+  .move-opt:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .move-opt:disabled {
+    cursor: default;
+    color: var(--muted);
+    background: transparent;
+  }
+  .move-opt.current {
+    border-color: var(--line-2);
+  }
+  .m-name {
+    flex: 1;
+    min-width: 0;
+  }
+  .m-count {
+    font-size: 13px;
+    font-family: var(--mono);
+    color: var(--muted);
+  }
   .state-msg,
   .loading {
     display: flex;

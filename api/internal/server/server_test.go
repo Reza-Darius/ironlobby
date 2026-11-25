@@ -169,7 +169,7 @@ func TestCreateUser(t *testing.T) {
 		t.Fatalf("failed to parse uuid from cookie, err: %v", err)
 	}
 
-	name, err := testApp.db.GetUser(t.Context(), id)
+	name, err := testApp.db.GetPlayer(t.Context(), id)
 	if err != nil {
 		t.Fatalf("failed to fetch user from db, err: %v", err)
 	}

@@ -64,3 +64,15 @@ func (q *Queries) GetCountryTag(ctx context.Context, id int16) (string, error) {
 	err := row.Scan(&country_tag)
 	return country_tag, err
 }
+
+const tagExists = `-- name: TagExists :one
+SELECT count(*) FROM countries
+WHERE country_tag = $1
+`
+
+func (q *Queries) TagExists(ctx context.Context, countryTag string) (int64, error) {
+	row := q.db.QueryRow(ctx, tagExists, countryTag)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}

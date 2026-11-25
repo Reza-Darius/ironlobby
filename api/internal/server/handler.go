@@ -280,7 +280,7 @@ func (app *Application) leaveLobby(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		switch {
-		case errors.Is(err, database.ErrUserNotFound):
+		case errors.Is(err, database.ErrPlayerNotFound):
 			{
 				http.Error(w, "requested player doesnt exist in lobby or lobby doesnt exist", http.StatusNotFound)
 				return
@@ -448,4 +448,162 @@ func (app *Application) updateLobbyCountry(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	slog.Debug("updated country in lobby", "country", tag, "lobby", lobbyID)
+}
+
+func (app *Application) kickPlayer(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	lobbyID, err := getLobbyID(r)
+	if err != nil {
+		slog.Error("couldnt retreve lobby ID")
+		return
+	}
+
+	playerName, err := getPlayerNameFromPath(r)
+	if err != nil {
+		http.Error(w, "invalid player name", http.StatusBadRequest)
+		return
+	}
+
+	playerID, err := app.db.GetPlayerID(ctx, playerName)
+	if err != nil {
+		switch {
+		case errors.Is(err, database.ErrPlayerNotFound):
+			{
+				http.Error(w, "user not found", http.StatusNotFound)
+			}
+		default:
+			{
+				slog.Error("error when fetching player id", "err", err)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+			}
+		}
+		return
+	}
+
+	err = app.db.DeleteLobbyPlayer(ctx, sqlc.DeleteLobbyPlayerParams{
+		LobbyID:  lobbyID,
+		PlayerID: playerID,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, database.ErrPlayerNotFound):
+			{
+				http.Error(w, "user not found", http.StatusNotFound)
+			}
+		default:
+			{
+				slog.Error("error when kicking player", "err", err)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+			}
+		}
+		return
+	}
+}
+
+func (app *Application) movePlayer(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	tag := struct {
+		CountryTag string `json:"country_tag"`
+	}{}
+
+	if err := json.NewDecoder(r.Body).Decode(&tag); err != nil {
+		http.Error(w, "failed to unmarshal", http.StatusBadRequest)
+		return
+	}
+	tag.CountryTag = strings.ToUpper(tag.CountryTag)
+
+	valid, err := app.db.TagIsValid(ctx, tag.CountryTag)
+	if err != nil {
+		switch {
+		default:
+			{
+				slog.Error("error when validating country tag", "err", err)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+			}
+		}
+		return
+	}
+	if !valid {
+		http.Error(w, "invalid country tag", http.StatusBadRequest)
+		return
+	}
+
+	lobbyID, err := getLobbyID(r)
+	if err != nil {
+		slog.Error("couldnt retreve lobby ID")
+		return
+	}
+
+	playerName, err := getPlayerNameFromPath(r)
+	if err != nil {
+		http.Error(w, "invalid player name", http.StatusBadRequest)
+		return
+	}
+
+	playerID, err := app.db.GetPlayerID(ctx, playerName)
+	if err != nil {
+		switch {
+		case errors.Is(err, database.ErrPlayerNotFound):
+			{
+				http.Error(w, "user not found", http.StatusNotFound)
+			}
+		default:
+			{
+				slog.Error("error when fetching player id", "err", err)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+			}
+		}
+		return
+	}
+
+	// WARNING: there is a potential race condition here
+	// upsertlobbyplayer() locks the lobby, not the gelobbyplayer() call
+	// so a player could move/leave inbetween and cause issues maybe
+
+	_, err = app.db.GetLobbyPlayer(ctx, sqlc.GetLobbyPlayerParams{
+		PlayerID: playerID,
+		LobbyID:  lobbyID,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, database.ErrPlayerNotFound):
+			{
+				http.Error(w, "user not found in lobby", http.StatusNotFound)
+			}
+		default:
+			{
+				slog.Error("error when kicking player", "err", err)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+			}
+		}
+		return
+	}
+
+	err = app.db.UpsertLobbyPlayer(ctx, sqlc.UpsertLobbyPlayerParams{
+		PlayerID:   playerID,
+		LobbyID:    lobbyID,
+		CountryTag: tag.CountryTag,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, database.ErrNationSlotsFull):
+			{
+				http.Error(w, "requested nation is full", http.StatusBadRequest)
+				return
+			}
+		case errors.Is(err, database.ErrNationNotAvail):
+			{
+				http.Error(w, "requested nation is unavailable", http.StatusBadRequest)
+				return
+			}
+		default:
+			{
+				slog.Error("error when kicking player", "err", err)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+			}
+		}
+		return
+	}
 }

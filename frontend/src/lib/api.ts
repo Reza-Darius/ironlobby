@@ -89,4 +89,12 @@ export const api = {
     request<void>('POST', `${lobbyPath(id)}/player`, { country_tag, note: note.trim() || null }),
 
   leave: (id: number) => request<void>('DELETE', `${lobbyPath(id)}/player`),
+
+  /** Host only: remove a player's seat. Names can contain spaces, % or /. */
+  kickPlayer: (id: number, name: string) =>
+    request<void>('DELETE', `${lobbyPath(id)}/player/${encodeURIComponent(name)}`),
+
+  /** Host only: move a player to another open nation; keeps their note. */
+  movePlayer: (id: number, name: string, country_tag: string) =>
+    request<void>('PATCH', `${lobbyPath(id)}/player/${encodeURIComponent(name)}`, { country_tag }),
 }

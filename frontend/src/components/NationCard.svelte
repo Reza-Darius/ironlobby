@@ -19,6 +19,12 @@
     onnote,
     onslots,
     onremove,
+    dragging = null,
+    ondragseat,
+    ondragdone,
+    ondropseat,
+    onmoveseat,
+    onkick,
   }: {
     tag: string
     slots: number
@@ -32,15 +38,78 @@
     onnote: () => void
     onslots: (v: number) => void
     onremove: () => void
+    /** host: the player currently being dragged (from any card) */
+    dragging?: LobbyPlayer | null
+    ondragseat?: (p: LobbyPlayer) => void
+    ondragdone?: () => void
+    /** host: the dragged player was dropped on this card */
+    ondropseat?: () => void
+    onmoveseat?: (p: LobbyPlayer) => void
+    onkick?: (p: LobbyPlayer) => void
   } = $props()
 
   const isMine = $derived(myTag === tag)
   const full = $derived(occupants.length >= slots)
   const open = $derived(Math.max(0, slots - occupants.length))
   const pct = $derived(Math.min(100, (occupants.length / slots) * 100))
+
+  // ---- host: drag a player onto another card to move them -----------------
+  // (touch screens get the per-seat Move button instead; HTML drag and drop
+  // doesn't work with fingers on most mobile browsers)
+  const dragFromHere = $derived(!!dragging && dragging.country_tag === tag)
+  const canDrop = $derived(host && !busy && !!dragging && !dragFromHere && !full)
+  let over = $state(false)
+  let card = $state<HTMLElement>()
+
+  function onseatdragstart(e: DragEvent, p: LobbyPlayer) {
+    if (!e.dataTransfer) return
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', p.player_name) // Firefox won't start a drag without data
+    ondragseat?.(p)
+  }
+
+  function ondragover(e: DragEvent) {
+    if (!dragging || dragFromHere) return
+    over = true
+    if (!canDrop) {
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'none'
+      return
+    }
+    e.preventDefault() // allows the drop
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
+  }
+
+  function ondragleave(e: DragEvent) {
+    // leaving into a child of the card isn't leaving the card
+    if (!card?.contains(e.relatedTarget as Node | null)) over = false
+  }
+
+  function ondrop(e: DragEvent) {
+    e.preventDefault()
+    over = false
+    if (canDrop) ondropseat?.()
+  }
+
+  $effect(() => {
+    if (!dragging) over = false
+  })
 </script>
 
-<article class="card" class:mine={isMine} class:full={full && !isMine} style:--nation={nationColor(tag)}>
+<article
+  class="card"
+  class:mine={isMine}
+  class:full={full && !isMine}
+  class:drop-ok={over && canDrop}
+  class:drop-no={over && !canDrop}
+  class:drag-source={dragFromHere}
+  style:--nation={nationColor(tag)}
+  bind:this={card}
+  {ondragover}
+  {ondragleave}
+  {ondrop}
+  role="group"
+  aria-label={nameOf(tag)}
+>
   <div class="fill" style:width="{pct}%"></div>
 
   <header>
@@ -49,7 +118,16 @@
 
   <ul class="seats">
     {#each occupants as p (p.player_name)}
-      <li class="seat taken" class:me={p.player_name === myName}>
+      <li
+        class="seat taken"
+        class:me={p.player_name === myName}
+        class:movable={host}
+        class:dragged={dragging?.player_name === p.player_name}
+        draggable={host && !busy}
+        ondragstart={(e) => onseatdragstart(e, p)}
+        ondragend={() => ondragdone?.()}
+        title={host ? 'Drag onto another nation to move this player' : undefined}
+      >
         <span class="pip"></span>
         <div class="who">
           <span class="pname">
@@ -59,6 +137,33 @@
           </span>
           {#if p.note}<span class="note">“{p.note}”</span>{/if}
         </div>
+        {#if host}
+          <div class="seat-actions">
+            <button
+              type="button"
+              class="seat-btn"
+              aria-label="Move {p.player_name} to another nation"
+              title="Move to another nation"
+              disabled={busy}
+              onclick={() => onmoveseat?.(p)}
+            >
+              <Icon name="move" size={14} />
+            </button>
+            {#if p.player_name !== myName}
+              <!-- your own seat has Leave in the footer -->
+              <button
+                type="button"
+                class="seat-btn kick"
+                aria-label="Kick {p.player_name}"
+                title="Kick from lobby"
+                disabled={busy}
+                onclick={() => onkick?.(p)}
+              >
+                <Icon name="x" size={14} />
+              </button>
+            {/if}
+          </div>
+        {/if}
       </li>
     {/each}
     {#each { length: open } as _, i (i)}
@@ -127,6 +232,19 @@
   .card.full {
     background: var(--bg-2);
   }
+  /* host drag and drop */
+  .card.drop-ok {
+    border-color: var(--accent);
+    border-style: dashed;
+    background: rgb(214 170 76 / 0.06);
+  }
+  .card.drop-no {
+    border-color: var(--danger);
+    border-style: dashed;
+  }
+  .card.drag-source {
+    border-style: dashed;
+  }
   .fill {
     position: absolute;
     top: 0;
@@ -169,6 +287,15 @@
   }
   .seat.taken {
     background: var(--panel-2);
+  }
+  .seat.movable {
+    cursor: grab;
+  }
+  .seat.movable:active {
+    cursor: grabbing;
+  }
+  .seat.dragged {
+    opacity: 0.4;
   }
   .seat.me {
     background: rgb(214 170 76 / 0.1);
@@ -245,6 +372,56 @@
   .empty .pip {
     background: transparent;
     border: 1px solid var(--line-2);
+  }
+  .seat-actions {
+    display: flex;
+    gap: 2px;
+    margin: -2px -4px -2px auto;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.12s;
+  }
+  .seat:hover .seat-actions,
+  .seat:focus-within .seat-actions {
+    opacity: 1;
+  }
+  /* no hover on touch screens: always show them */
+  @media (hover: none) {
+    .seat-actions {
+      opacity: 1;
+    }
+  }
+  .seat-btn {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition:
+      color 0.12s,
+      background 0.12s,
+      border-color 0.12s;
+  }
+  .seat-btn:hover:not(:disabled) {
+    color: var(--text);
+    background: var(--panel);
+    border-color: var(--line-2);
+  }
+  .seat-btn.kick:hover:not(:disabled) {
+    color: var(--danger);
+  }
+  .seat-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .seat-btn:disabled {
+    cursor: progress;
+    opacity: 0.5;
   }
   .who {
     display: flex;

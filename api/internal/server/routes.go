@@ -51,6 +51,8 @@ func (app *Application) routes() *chi.Mux {
 
 				r.Patch("/lobby/{lobby_id}", app.updateLobby)
 				r.Delete("/lobby/{lobby_id}", app.deleteLobby)
+				r.Delete("/lobby/{lobby_id}/player/{player_name}", app.kickPlayer)
+				r.Patch("/lobby/{lobby_id}/player/{player_name}", app.movePlayer)
 				r.Post("/lobby/{lobby_id}/country", app.addLobbyCountry)
 				r.Delete("/lobby/{lobby_id}/country/{country_tag}", app.deleteLobbyCountry)
 				r.Patch("/lobby/{lobby_id}/country/{country_tag}", app.updateLobbyCountry)

@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
@@ -13,7 +14,7 @@ import (
 
 // domain errors to not expose PG internals
 var (
-	ErrUserNotFound = errors.New("user not found")
+	ErrPlayerNotFound = errors.New("user not found")
 
 	ErrLobbyExists       = errors.New("lobby already exists")
 	ErrLobbyDoesntExists = errors.New("lobby doesnt exist")
@@ -30,9 +31,28 @@ func (db *Database) OpenLobbies(ctx context.Context) (int64, error) {
 	return q.OpenLobbies(ctx)
 }
 
-func (db *Database) GetUser(ctx context.Context, id uuid.UUID) (string, error) {
+func (db *Database) GetPlayer(ctx context.Context, id uuid.UUID) (string, error) {
 	q := sqlc.New(db.pool)
-	return q.GetPlayer(ctx, id)
+	name, err := q.GetPlayer(ctx, id)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return "", ErrPlayerNotFound
+		}
+		return "", err
+	}
+	return name, nil
+}
+
+func (db *Database) GetPlayerID(ctx context.Context, playerName string) (uuid.UUID, error) {
+	q := sqlc.New(db.pool)
+	id, err := q.GetPlayerID(ctx, playerName)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return uuid.UUID{}, ErrPlayerNotFound
+		}
+		return uuid.UUID{}, err
+	}
+	return id, nil
 }
 
 func (db *Database) NewUser(ctx context.Context, playerName string) (uuid.UUID, error) {
@@ -151,7 +171,7 @@ func (db *Database) DeleteLobbyPlayer(ctx context.Context, arg sqlc.DeleteLobbyP
 	_, err := q.DeleteLobbyPlayer(ctx, arg)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return ErrUserNotFound
+			return ErrPlayerNotFound
 		}
 		return err
 	}
@@ -199,6 +219,18 @@ func (db *Database) GetLobbyCountries(ctx context.Context, lobbyID int64) ([]sql
 		return nil, err
 	}
 	return lobbyCountries, nil
+}
+
+func (db *Database) GetLobbyPlayer(ctx context.Context, arg sqlc.GetLobbyPlayerParams) (sqlc.GetLobbyPlayerRow, error) {
+	q := sqlc.New(db.pool)
+	lobbyPlayer, err := q.GetLobbyPlayer(ctx, arg)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return sqlc.GetLobbyPlayerRow{}, ErrPlayerNotFound
+		}
+		return sqlc.GetLobbyPlayerRow{}, err
+	}
+	return lobbyPlayer, nil
 }
 
 func (db *Database) GetLobbyPlayers(ctx context.Context, lobbyID int64) ([]sqlc.GetLobbyPlayersRow, error) {
@@ -296,4 +328,17 @@ func (db *Database) GetCountries(ctx context.Context) ([]sqlc.GetCountriesRow, e
 		return nil, err
 	}
 	return countries, nil
+}
+
+func (db *Database) TagIsValid(ctx context.Context, tag string) (bool, error) {
+	if len(tag) != 3 { // every tag is 3 letters
+		return false, nil
+	}
+	tag = strings.ToUpper(tag)
+	q := sqlc.New(db.pool)
+	matches, err := q.TagExists(ctx, tag)
+	if err != nil {
+		return false, err
+	}
+	return matches == 1, nil
 }

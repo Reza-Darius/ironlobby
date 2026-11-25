@@ -165,6 +165,33 @@ func (q *Queries) GetLobbyFromHostID(ctx context.Context, arg GetLobbyFromHostID
 	return id, err
 }
 
+const getLobbyPlayer = `-- name: GetLobbyPlayer :one
+SELECT
+    country_id,
+    note,
+    joined_at
+FROM player_lobby
+WHERE lobby_id = $1 AND player_id = $2
+`
+
+type GetLobbyPlayerParams struct {
+	LobbyID  int64     `json:"lobby_id"`
+	PlayerID uuid.UUID `json:"player_id"`
+}
+
+type GetLobbyPlayerRow struct {
+	CountryID int16       `json:"country_id"`
+	Note      pgtype.Text `json:"note"`
+	JoinedAt  time.Time   `json:"joined_at"`
+}
+
+func (q *Queries) GetLobbyPlayer(ctx context.Context, arg GetLobbyPlayerParams) (GetLobbyPlayerRow, error) {
+	row := q.db.QueryRow(ctx, getLobbyPlayer, arg.LobbyID, arg.PlayerID)
+	var i GetLobbyPlayerRow
+	err := row.Scan(&i.CountryID, &i.Note, &i.JoinedAt)
+	return i, err
+}
+
 const getLobbyPlayers = `-- name: GetLobbyPlayers :many
 SELECT
     player.player_name,
@@ -405,7 +432,10 @@ SELECT
 FROM countries
 WHERE country_tag = $3
 ON CONFLICT (lobby_id, player_id)
-DO UPDATE SET country_id = excluded.country_id, note = excluded.note
+DO UPDATE
+    SET
+        country_id = excluded.country_id,
+        note = COALESCE(excluded.note, player_lobby.note)
 RETURNING player_id, lobby_id, country_id, note, joined_at
 `
 

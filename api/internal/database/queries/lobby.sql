@@ -16,6 +16,14 @@ JOIN player ON pl.player_id = player.id
 JOIN lobby ON pl.lobby_id = lobby.id
 WHERE pl.lobby_id = $1;
 
+-- name: GetLobbyPlayer :one
+SELECT
+    country_id,
+    note,
+    joined_at
+FROM player_lobby
+WHERE lobby_id = $1 AND player_id = $2;
+
 -- name: GetLobbyCountries :many
 SELECT
     countries.country_tag,
@@ -108,7 +116,10 @@ FROM countries
 WHERE country_tag = $3
 -- when the player is already in the lobby, we just update the tag and note
 ON CONFLICT (lobby_id, player_id)
-DO UPDATE SET country_id = excluded.country_id, note = excluded.note
+DO UPDATE
+    SET
+        country_id = excluded.country_id,
+        note = COALESCE(excluded.note, player_lobby.note)
 RETURNING *;
 
 -- name: DeleteLobbyPlayer :one

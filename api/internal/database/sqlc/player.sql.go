@@ -47,6 +47,18 @@ func (q *Queries) GetPlayer(ctx context.Context, id uuid.UUID) (string, error) {
 	return player_name, err
 }
 
+const getPlayerID = `-- name: GetPlayerID :one
+SELECT id FROM player
+WHERE player_name = $1
+`
+
+func (q *Queries) GetPlayerID(ctx context.Context, playerName string) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, getPlayerID, playerName)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const insertNewPlayer = `-- name: InsertNewPlayer :one
 INSERT INTO player (player_name)
 VALUES ($1)

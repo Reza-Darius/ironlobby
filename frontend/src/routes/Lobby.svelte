@@ -4,13 +4,14 @@
   import Modal from '../components/Modal.svelte'
   import NationCard from '../components/NationCard.svelte'
   import NationPicker from '../components/NationPicker.svelte'
+  import DateTimePicker from '../components/DateTimePicker.svelte'
   import Flag from '../components/Flag.svelte'
   import { api, ApiError } from '../lib/api'
   import { authed, forgetLobby, isHost, me, rememberLobby, type Role } from '../lib/identity.svelte'
   import { BLOCS, nationBloc, type Bloc } from '../lib/nations'
   import { lobbyUrl, navigate } from '../lib/router.svelte'
   import { clock, copy, nameOf, toast, toastError } from '../lib/state.svelte'
-  import { countdown, formatDate, fromLocalInput, toLocalInput } from '../lib/time'
+  import { countdown, formatDate, fromLocalInput, timezoneName, toLocalInput } from '../lib/time'
   import { gamemodeLabel, type LobbyInfo, type LobbyPlayer } from '../lib/types'
 
   let { id }: { id: number } = $props()
@@ -527,10 +528,11 @@
       <span class="label">Lobby name</span>
       <input class="input" bind:value={draft.name} maxlength="80" />
     </label>
-    <label class="field">
+    <div class="field">
       <span class="label">Start time</span>
-      <input class="input" type="datetime-local" bind:value={draft.startsAt} />
-    </label>
+      <DateTimePicker bind:value={draft.startsAt} />
+      <span class="hint">Your local time ({timezoneName()}).</span>
+    </div>
     <label class="field">
       <span class="label">Rules & notes</span>
       <textarea class="textarea" rows="5" bind:value={draft.description}></textarea>

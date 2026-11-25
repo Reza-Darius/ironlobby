@@ -3,6 +3,7 @@
   import { fade } from 'svelte/transition'
   import Icon from '../components/Icon.svelte'
   import NationPicker from '../components/NationPicker.svelte'
+  import DateTimePicker from '../components/DateTimePicker.svelte'
   import Stepper from '../components/Stepper.svelte'
   import Flag from '../components/Flag.svelte'
   import { api } from '../lib/api'
@@ -114,17 +115,12 @@
       </div>
     </fieldset>
 
-    <label class="field">
+    <div class="field">
       <span class="label">Start time</span>
-      <input
-        class="input"
-        type="datetime-local"
-        bind:value={startsAt}
-        aria-invalid={!!errors.startsAt}
-      />
+      <DateTimePicker bind:value={startsAt} invalid={!!errors.startsAt} />
       {#if errors.startsAt}<span class="error">{errors.startsAt}</span>
       {:else}<span class="hint">Your local time ({timezoneName()}). Players see it in theirs.</span>{/if}
-    </label>
+    </div>
 
     <label class="field">
       <span class="label">Rules & notes <span class="dim">(optional)</span></span>

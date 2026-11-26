@@ -339,9 +339,9 @@
 
       <!-- factions side by side: Allies (+ Comintern below) | Axis -->
       {#snippet blocSection(g: (typeof groups)[number])}
-        <section class="bloc bloc-{g.bloc}">
-          <h2 class="bloc-title" style:--bloc={BLOCS[g.bloc].color} title={BLOCS[g.bloc].full}>
-            <span class="bloc-dot"></span>{BLOCS[g.bloc].label}
+        <section class="bloc bloc-{g.bloc}" style:--bloc={BLOCS[g.bloc].color} style:--tint="{BLOCS[g.bloc].tint}%">
+          <h2 class="bloc-title" title={BLOCS[g.bloc].full}>
+            {BLOCS[g.bloc].label}
             <span class="bloc-count" title="Players / slots">{g.players}/{g.slots}</span>
           </h2>
           <div class="nation-list panel">
@@ -666,16 +666,6 @@
     font-variant-numeric: tabular-nums;
     color: var(--muted);
   }
-  .bloc-title .bloc-dot {
-    width: 13px;
-    height: 13px;
-  }
-  .bloc-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 2px;
-    background: var(--bloc);
-  }
   .skeleton-lists {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -717,10 +707,17 @@
     flex-direction: column;
     padding: 0;
     overflow: hidden;
+    /* the faction's colour, just a hint: allies bluish, axis grey, comintern red */
+    background: color-mix(in srgb, var(--bloc) var(--tint), var(--panel));
+    border-color: color-mix(in srgb, var(--bloc) min(var(--tint) * 2.4, 30%), var(--line));
   }
   /* drawn inside the row (takes no height) so rows stay exactly 50px per slot */
   .nation-list > div + div {
-    box-shadow: inset 0 1px 0 var(--line);
+    box-shadow: inset 0 1px 0 var(--divider, var(--line));
+  }
+  /* the light GEACPS tint swallows the normal line: go dark instead */
+  .bloc-geacps {
+    --divider: rgb(0 0 0 / 0.38);
   }
   /* first / last rows follow the list's rounded corners (12px - 1px border),
      so a highlighted row's gold edge isn't clipped at the corner */

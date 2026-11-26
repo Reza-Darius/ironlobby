@@ -6,14 +6,16 @@
 
 export type Bloc = 'axis' | 'allies' | 'comintern' | 'geacps' | 'chinese' | 'other'
 
-export const BLOCS: Record<Bloc, { label: string; color: string; full?: string }> = {
-  axis: { label: 'Axis', color: '#8d8f86' },
-  allies: { label: 'Allies', color: '#5f86c4' },
-  comintern: { label: 'Comintern', color: '#c0463b' },
+// `color` is the list tint, mixed `tint`% into the (olive) panel colour. The
+// greys and reds lean slightly blue/violet to cancel the panel's green.
+export const BLOCS: Record<Bloc, { label: string; color: string; tint: number; full?: string }> = {
+  axis: { label: 'Axis', color: '#7a7090', tint: 18 },
+  allies: { label: 'Allies', color: '#5060e0', tint: 13 },
+  comintern: { label: 'Comintern', color: '#b01848', tint: 14 },
   // Japan's own faction in HoI4
-  geacps: { label: 'GEACPS', color: '#d9c58a', full: 'Greater East Asia Co-Prosperity Sphere' },
-  chinese: { label: 'United Front', color: '#5f9a78', full: 'Chinese United Front' },
-  other: { label: 'Non-aligned', color: '#a3946b' },
+  geacps: { label: 'GEACPS', color: '#f8eef6', tint: 16, full: 'Greater East Asia Co-Prosperity Sphere' },
+  chinese: { label: 'United Front', color: '#5f9a78', tint: 9, full: 'Chinese United Front' },
+  other: { label: 'Non-aligned', color: '#a3946b', tint: 9 },
 }
 
 const META: Record<string, [color: string, bloc: Bloc]> = {

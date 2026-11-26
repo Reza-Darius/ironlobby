@@ -220,7 +220,8 @@
   }
   /* your nation: gold edge with a soft inner glow, on a warmer tint */
   .card.mine {
-    background: #2f2f21;
+    /* translucent, so the faction tint still shows underneath */
+    background: rgb(214 170 76 / 0.07);
     box-shadow:
       inset 0 0 0 1px rgb(214 170 76 / 0.75),
       inset 0 0 18px rgb(214 170 76 / 0.16);
@@ -278,9 +279,10 @@
     border-radius: 6px;
     font-size: 15px;
   }
+  /* tinted like the faction list around it (--bloc/--tint come from Lobby) */
   .seat.taken {
     position: relative;
-    background: var(--panel-2);
+    background: color-mix(in srgb, var(--bloc, #000) var(--tint, 0%), var(--panel-2));
   }
   .seat.movable {
     cursor: grab;
@@ -291,9 +293,11 @@
   .seat.dragged {
     opacity: 0.4;
   }
-  /* solid (10% gold over the card) so the hover actions can match it */
+  /* 10% gold over the faction-tinted seat; stays opaque so the hover actions can match it */
   .seat.me {
-    background: #383826;
+    background:
+      linear-gradient(rgb(214 170 76 / 0.1) 0 0),
+      color-mix(in srgb, var(--bloc, #000) var(--tint, 0%), var(--panel-2));
   }
   .seat.empty {
     color: var(--dim);
@@ -387,7 +391,7 @@
   }
   .seat-btn:hover:not(:disabled) {
     color: var(--text);
-    background: var(--panel);
+    background: color-mix(in srgb, var(--bloc, #000) var(--tint, 0%), var(--panel));
     border-color: var(--line-2);
   }
   .seat-btn.kick:hover:not(:disabled) {

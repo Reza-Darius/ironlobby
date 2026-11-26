@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { nationColor } from '../lib/nations'
   import { nameOf } from '../lib/state.svelte'
   import type { LobbyPlayer } from '../lib/types'
   import Icon from './Icon.svelte'
@@ -24,7 +23,6 @@
     ondragseat,
     ondragdone,
     ondropseat,
-    onmoveseat,
     onkick,
   }: {
     tag: string
@@ -45,14 +43,12 @@
     ondragdone?: () => void
     /** host: the dragged player was dropped on this card */
     ondropseat?: () => void
-    onmoveseat?: (p: LobbyPlayer) => void
     onkick?: (p: LobbyPlayer) => void
   } = $props()
 
   const isMine = $derived(myTag === tag)
   const full = $derived(occupants.length >= slots)
   const open = $derived(Math.max(0, slots - occupants.length))
-  const pct = $derived(Math.min(100, (occupants.length / slots) * 100))
 
   // ---- host: drag a player onto another card to move them -----------------
   // (touch screens get the per-seat Move button instead; HTML drag and drop
@@ -99,11 +95,9 @@
 <article
   class="card"
   class:mine={isMine}
-  class:full={full && !isMine}
   class:drop-ok={over && canDrop}
   class:drop-no={over && !canDrop}
   class:drag-source={dragFromHere}
-  style:--nation={nationColor(tag)}
   bind:this={card}
   {ondragover}
   {ondragleave}
@@ -111,11 +105,21 @@
   role="group"
   aria-label={nameOf(tag)}
 >
-  <div class="fill" style:width="{pct}%"></div>
 
   <header>
     <Flag {tag} size="lg" />
-    <h3>{nameOf(tag)}</h3>  </header>
+    <h3>{nameOf(tag)}</h3>
+    <!-- host: slots + remove. With a mouse they replace the name while the row
+         is hovered, so host rows keep the same 50px-per-slot rhythm -->
+    {#if host}
+      <div class="host-controls">
+        <Stepper value={slots} min={Math.max(1, occupants.length)} disabled={busy} onchange={onslots} />
+        <button class="btn icon sm ghost danger" aria-label="Remove {nameOf(tag)} from lobby" title="Remove nation" onclick={onremove} disabled={busy}>
+          <Icon name="trash" size={14} />
+        </button>
+      </div>
+    {/if}
+  </header>
 
   <ul class="seats">
     {#each occupants as p (p.player_name)}
@@ -133,24 +137,36 @@
           <span class="pname">
             <span class="pname-text" title={p.player_name}>{p.player_name}</span>
             {#if p.is_host}<span class="host-mark" title="Host" aria-label="Host"><Icon name="crown" size={13} /></span>{/if}
-            {#if p.player_name === myName}<span class="you">you</span>{/if}
             {#if p.note}<NoteBubble note={p.note} name={p.player_name} />{/if}
           </span>
         </div>
-        {#if host}
-          <div class="seat-actions">
-            <button
-              type="button"
-              class="seat-btn"
-              aria-label="Move {p.player_name} to another nation"
-              title="Move to another nation"
-              disabled={busy}
-              onclick={() => onmoveseat?.(p)}
-            >
-              <Icon name="move" size={14} />
-            </button>
-            {#if p.player_name !== myName}
-              <!-- your own seat has Leave in the footer -->
+        {#if host || p.player_name === myName}
+          <!-- your own seat always shows its buttons; host tools on others appear on hover -->
+          <div class="seat-actions" class:own={p.player_name === myName}>
+            {#if p.player_name === myName}
+              <button
+                type="button"
+                class="seat-btn"
+                aria-label={p.note ? 'Edit your note' : 'Add a note'}
+                title={p.note ? 'Edit note' : 'Add note'}
+                disabled={busy}
+                onclick={onnote}
+              >
+                <Icon name="pencil" size={13} />
+              </button>
+            {/if}
+            {#if p.player_name === myName}
+              <button
+                type="button"
+                class="seat-btn kick"
+                aria-label="Leave {nameOf(tag)}"
+                title="Leave this nation"
+                disabled={busy}
+                onclick={onleave}
+              >
+                <Icon name="leave" size={14} />
+              </button>
+            {:else if host}
               <button
                 type="button"
                 class="seat-btn kick"
@@ -185,75 +201,53 @@
     {/each}
   </ul>
 
-  {#if isMine || host}
-  <footer>
-    {#if isMine}
-      <button class="btn sm" onclick={onnote} disabled={busy}>
-        <Icon name="note" size={13} />{occupants.find((p) => p.player_name === myName)?.note ? 'Edit note' : 'Add note'}
-      </button>
-      <button class="btn sm danger" onclick={onleave} disabled={busy}><Icon name="leave" size={13} />Leave</button>
-    {/if}
 
-    {#if host}
-      <span class="spacer"></span>
-      <Stepper value={slots} min={Math.max(1, occupants.length)} disabled={busy} onchange={onslots} />
-      <button class="btn icon sm ghost danger" aria-label="Remove {nameOf(tag)} from lobby" title="Remove nation" onclick={onremove} disabled={busy}>
-        <Icon name="trash" size={14} />
-      </button>
-    {/if}
-  </footer>
-  {/if}
 </article>
 
 <style>
+  /* one nation = one row of its faction's list: name left, seats right */
   .card {
     position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 14px;
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    transition: border-color 0.15s;
+    display: grid;
+    grid-template-columns: 190px minmax(0, 1fr);
+    gap: 0 16px;
+    /* seats sit 5px inside the list on the right, top and bottom: with their
+       6px corners that matches the list's 11px inner corner (12px - 1px border) */
+    padding: 5px 5px 5px 14px;
+    height: 100%;
+    /* every nation row sits a little darker than the list panel */
+    background: rgb(0 0 0 / 0.14);
   }
-  .card:hover {
-    border-color: var(--line-2);
-  }
+  /* your nation: gold edge with a soft inner glow, on a warmer tint */
   .card.mine {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 1px rgb(214 170 76 / 0.25) inset;
-  }
-  .card.full {
-    background: var(--bg-2);
+    background: #2f2f21;
+    box-shadow:
+      inset 0 0 0 1px rgb(214 170 76 / 0.75),
+      inset 0 0 18px rgb(214 170 76 / 0.16);
   }
   /* host drag and drop */
   .card.drop-ok {
-    border-color: var(--accent);
-    border-style: dashed;
-    background: rgb(214 170 76 / 0.06);
+    outline: 2px dashed var(--accent);
+    outline-offset: -3px;
+    background: rgb(214 170 76 / 0.08);
   }
   .card.drop-no {
-    border-color: var(--danger);
-    border-style: dashed;
+    outline: 2px dashed var(--danger);
+    outline-offset: -3px;
   }
   .card.drag-source {
-    border-style: dashed;
-  }
-  .fill {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 3px;
-    background: var(--nation);
-    transition: width 0.3s ease;
+    outline: 1px dashed var(--line-2);
+    outline-offset: -3px;
   }
   header {
+    grid-column: 1;
     display: flex;
     align-items: center;
     gap: 10px;
     min-width: 0;
+    /* centred on the first seat (40px tall) */
+    height: 40px;
+    align-self: start;
   }
   h3 {
     flex: 1;
@@ -265,20 +259,22 @@
     white-space: nowrap;
   }
   .seats {
+    grid-column: 2;
     list-style: none;
     margin: 0;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 10px;
     flex: 1;
   }
+  /* fixed height: rows are exactly 50px per slot, so the lists line up */
   .seat {
     display: flex;
     align-items: center;
     gap: 9px;
-    min-height: 38px;
-    padding: 6px 10px;
+    height: 40px;
+    padding: 0 10px;
     border-radius: 6px;
     font-size: 15px;
   }
@@ -362,6 +358,11 @@
       overflow: visible;
     }
   }
+  .seat .seat-actions.own {
+    width: auto;
+    overflow: visible;
+    opacity: 1;
+  }
   /* no hover on touch screens: always show them, in the row */
   @media (hover: none) {
     .seat-actions {
@@ -428,24 +429,45 @@
     display: inline-flex;
     color: var(--accent);
   }
-  .you {
-    /* tight box so the capitals sit on the name's centre line */
-    line-height: 1;
-    padding-top: 1px;
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--accent);
-  }
-  footer {
+  .host-controls {
     display: flex;
     align-items: center;
     gap: 6px;
-    flex-wrap: wrap;
-    min-height: 30px;
   }
-  .spacer {
-    flex: 1;
+  @media (hover: hover) {
+    .host-controls {
+      display: none;
+    }
+    .card:hover .host-controls,
+    .card:focus-within .host-controls {
+      display: flex;
+    }
+    /* only where there are host controls to show instead */
+    .card:hover header:has(.host-controls) h3,
+    .card:focus-within header:has(.host-controls) h3 {
+      display: none;
+    }
+  }
+  /* touch: no hover, so the controls sit on their own line under the name */
+  @media (hover: none) {
+    header:has(.host-controls) {
+      flex-wrap: wrap;
+      height: auto;
+      min-height: 40px;
+      row-gap: 6px;
+    }
+    .host-controls {
+      flex-basis: 100%;
+    }
+  }
+  /* narrow: name above the seats */
+  @media (max-width: 520px) {
+    .card {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    header,
+    .seats {
+      grid-column: 1;
+    }
   }
 </style>

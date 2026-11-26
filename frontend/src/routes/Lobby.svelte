@@ -59,7 +59,7 @@
     return m
   })
 
-  const BLOC_ORDER: Bloc[] = ['allies', 'axis', 'comintern', 'other']
+  const BLOC_ORDER: Bloc[] = ['allies', 'axis', 'geacps', 'comintern', 'chinese', 'other']
   const groups = $derived.by(() => {
     const list = info?.countries ?? []
     return BLOC_ORDER.map((bloc) => ({
@@ -79,6 +79,11 @@
         ),
     })).filter((g) => g.nations.length)
   })
+
+  // two columns on wide screens: Allies with the Comintern and United Front below,
+  // Axis with the GEACPS (and non-aligned) below
+  const leftBlocs = $derived(groups.filter((g) => g.bloc === 'allies' || g.bloc === 'comintern' || g.bloc === 'chinese'))
+  const rightBlocs = $derived(groups.filter((g) => g.bloc === 'axis' || g.bloc === 'geacps' || g.bloc === 'other'))
 
   const openNations = $derived((info?.countries ?? []).map((c) => c.country_tag))
 
@@ -192,36 +197,17 @@
     run(() => api.addCountry(id, tag, 1), '', `${nameOf(tag)} added.`)
   }
 
-  // host: players. Move by drag and drop (or the Move button), kick with ×.
+  // host: players. Move by drag and drop, kick with ×.
   let dragging = $state<LobbyPlayer | null>(null)
-  let moveTarget = $state<LobbyPlayer | null>(null)
-  let moveOpen = $state(false)
-
-  // every open nation in page order, with what's free on it
-  const moveChoices = $derived(
-    groups.flatMap((g) =>
-      g.nations.map((c) => ({
-        tag: c.country_tag,
-        taken: seats.get(c.country_tag)?.length ?? 0,
-        slots: c.max_slots,
-      })),
-    ),
-  )
 
   function movePlayer(p: LobbyPlayer, tag: string) {
     dragging = null
-    moveOpen = false
     if (p.country_tag === tag) return
     const name = p.player_name
     // optimistic: the seat jumps right away; a refused move snaps back on refresh
     const live = info?.players?.find((x) => x.player_name === name)
     if (live) live.country_tag = tag
     run(() => api.movePlayer(id, name, tag), '', `${name} moved to ${nameOf(tag)}.`)
-  }
-
-  function openMove(p: LobbyPlayer) {
-    moveTarget = p
-    moveOpen = true
   }
 
   function kickPlayer(p: LobbyPlayer) {
@@ -325,8 +311,9 @@
     <div class="skeleton" style="height: 18px; width: 140px"></div>
     <div class="skeleton" style="height: 44px; width: min(480px, 90%)"></div>
     <div class="skeleton" style="height: 20px; width: 300px"></div>
-    <div class="grid" style="margin-top: 24px">
-      {#each { length: 6 } as _, i (i)}<div class="skeleton" style="height: 150px"></div>{/each}
+    <!-- two faction lists, like the real page -->
+    <div class="skeleton-lists">
+      {#each { length: 2 } as _, i (i)}<div class="skeleton" style="height: 360px"></div>{/each}
     </div>
   </div>
 {:else}
@@ -350,13 +337,14 @@
         </div>
       {/if}
 
-      {#each groups as g (g.bloc)}
-        <section class="bloc">
-          <h2 class="bloc-title" style:--bloc={BLOCS[g.bloc].color}>
+      <!-- factions side by side: Allies (+ Comintern below) | Axis -->
+      {#snippet blocSection(g: (typeof groups)[number])}
+        <section class="bloc bloc-{g.bloc}">
+          <h2 class="bloc-title" style:--bloc={BLOCS[g.bloc].color} title={BLOCS[g.bloc].full}>
             <span class="bloc-dot"></span>{BLOCS[g.bloc].label}
             <span class="bloc-count" title="Players / slots">{g.players}/{g.slots}</span>
           </h2>
-          <div class="grid">
+          <div class="nation-list panel">
             {#each g.nations as c (c.country_tag)}
               <div>
                 <NationCard
@@ -376,14 +364,21 @@
                   ondragseat={(p) => (dragging = p)}
                   ondragdone={() => (dragging = null)}
                   ondropseat={() => dragging && movePlayer(dragging, c.country_tag)}
-                  onmoveseat={openMove}
                   onkick={kickPlayer}
                 />
               </div>
             {/each}
           </div>
         </section>
-      {/each}
+      {/snippet}
+      <div class="blocs" class:split={leftBlocs.length > 0 && rightBlocs.length > 0}>
+        <div class="bloc-col">
+          {#each leftBlocs as g (g.bloc)}{@render blocSection(g)}{/each}
+        </div>
+        <div class="bloc-col">
+          {#each rightBlocs as g (g.bloc)}{@render blocSection(g)}{/each}
+        </div>
+      </div>
 
       {#if host}
         <section class="add-nation panel">
@@ -511,43 +506,6 @@
   {/if}
 </Modal>
 
-<!-- host: move a player (also the touch / keyboard path for drag and drop) -->
-<Modal
-  bind:open={moveOpen}
-  title={moveTarget ? `Move ${moveTarget.player_name}` : ''}
-  subtitle="Pick a nation with a free slot. Their note stays."
->
-  {#if moveTarget}
-    {@const from = moveTarget.country_tag}
-    <div class="stack">
-      <ul class="move-list">
-        {#each moveChoices as m (m.tag)}
-          {@const current = m.tag === from}
-          {@const isFull = m.taken >= m.slots}
-          <li>
-            <button
-              type="button"
-              class="move-opt"
-              class:current
-              disabled={current || isFull || busy}
-              onclick={() => moveTarget && movePlayer(moveTarget, m.tag)}
-            >
-              <Flag tag={m.tag} size="sm" />
-              <span class="m-name">{nameOf(m.tag)}</span>
-              <span class="m-count">
-                {#if current}Current{:else if isFull}Full{:else}{m.taken} / {m.slots}{/if}
-              </span>
-            </button>
-          </li>
-        {/each}
-      </ul>
-      <div class="row end">
-        <button type="button" class="btn ghost" onclick={() => (moveOpen = false)}>Cancel</button>
-      </div>
-    </div>
-  {/if}
-</Modal>
-
 <!-- confirm -->
 <Modal bind:open={confirmOpen} title={confirm?.title ?? ''}>
   {#if confirm}
@@ -600,59 +558,6 @@
   .launch strong {
     color: var(--text);
     font-weight: 600;
-  }
-  .move-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    max-height: min(420px, 55vh);
-    overflow-y: auto;
-  }
-  .move-opt {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 9px 12px;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: var(--panel-2);
-    color: var(--text);
-    font: inherit;
-    font-size: 15px;
-    text-align: left;
-    cursor: pointer;
-    transition:
-      border-color 0.12s,
-      background 0.12s;
-  }
-  .move-opt:hover:not(:disabled) {
-    border-color: var(--accent);
-    background: rgb(214 170 76 / 0.08);
-  }
-  .move-opt:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 1px;
-  }
-  .move-opt:disabled {
-    cursor: default;
-    color: var(--muted);
-    background: transparent;
-  }
-  .move-opt.current {
-    border-color: var(--line-2);
-  }
-  .m-name {
-    flex: 1;
-    min-width: 0;
-  }
-  .m-count {
-    font-size: 13px;
-    font-family: var(--mono);
-    color: var(--muted);
   }
   .state-msg,
   .loading {
@@ -771,17 +676,61 @@
     border-radius: 2px;
     background: var(--bloc);
   }
-  .grid {
+  .skeleton-lists {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 28px;
+    width: 100%;
+    margin-top: 24px;
   }
-  .grid > div {
+  .blocs {
+    display: grid;
+    gap: 24px 28px;
+    align-items: start;
+  }
+  .bloc-col {
     display: flex;
     flex-direction: column;
+    gap: 24px;
+    min-width: 0;
   }
-  .grid > div > :global(*) {
-    flex: 1;
+  @media (min-width: 900px) {
+    .blocs.split {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  /* one column: stack as Allies, Axis, GEACPS, Comintern, United Front, others */
+  @media (max-width: 899px) {
+    .bloc-col {
+      display: contents;
+    }
+    .bloc-allies { order: 1; }
+    .bloc-axis { order: 2; }
+    .bloc-geacps { order: 3; }
+    .bloc-comintern { order: 4; }
+    .bloc-chinese { order: 5; }
+    .bloc-other { order: 6; }
+  }
+  /* each faction is one list; nations are rows separated by a line */
+  .nation-list {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+  }
+  /* drawn inside the row (takes no height) so rows stay exactly 50px per slot */
+  .nation-list > div + div {
+    box-shadow: inset 0 1px 0 var(--line);
+  }
+  /* first / last rows follow the list's rounded corners (12px - 1px border),
+     so a highlighted row's gold edge isn't clipped at the corner */
+  .nation-list > div:first-child > :global(.card) {
+    border-top-left-radius: 11px;
+    border-top-right-radius: 11px;
+  }
+  .nation-list > div:last-child > :global(.card) {
+    border-bottom-left-radius: 11px;
+    border-bottom-right-radius: 11px;
   }
 
   .empty {

@@ -98,32 +98,25 @@
 
 <section class="modes">
   <a href="/new" class="mode panel host">
-    <div class="mode-icon"><Icon name="crown" size={22} /></div>
-    <div class="mode-body">
-      <h2>Host a game</h2>
-      <p class="muted">Pick the nations, the slots per nation, and when it starts. You get a link to send to everyone.</p>
-    </div>
+    <h2>Host a lobby</h2>
     <span class="btn primary">Create lobby</span>
   </a>
 
   <form class="mode panel" onsubmit={join}>
-    <div class="mode-icon"><Icon name="flag" size={22} /></div>
-    <div class="mode-body">
-      <h2>Join a game</h2>
-      <p class="muted">Got an invite? Paste the link or lobby number to see the open nations and claim one.</p>
-    </div>
+    <h2>Join a lobby</h2>
     <div class="join-row">
       <input
         class="input"
         bind:value={ref}
         oninput={() => (error = '')}
-        placeholder="https://…/lobby/42 or 42"
+        placeholder="Lobby link or number"
         aria-label="Invite link or lobby number"
         aria-invalid={!!error}
       />
       <button class="btn primary">Join</button>
+      <!-- hangs below the row, so the headline stays level with the host box -->
+      {#if error}<span class="error join-error">{error}</span>{/if}
     </div>
-    {#if error}<span class="error">{error}</span>{/if}
   </form>
 </section>
 
@@ -200,7 +193,13 @@
   .mode {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    /* headline with its action right underneath, centred in the box */
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    gap: 26px;
+    /* same footprint as the old icon + text version, for now */
+    min-height: 242px;
     padding: 22px;
     color: inherit;
     transition: border-color 0.15s;
@@ -208,30 +207,34 @@
   .mode.host:hover {
     border-color: rgb(214 170 76 / 0.5);
   }
-  .mode-icon {
-    display: grid;
-    place-items: center;
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
-    background: var(--panel-2);
-    border: 1px solid var(--line-2);
-    color: var(--accent);
-  }
-  .mode-body {
-    flex: 1;
-  }
   .mode h2 {
-    font-size: 24px;
+    font-size: clamp(36px, 5vw, 54px);
+    line-height: 1.05;
     text-transform: uppercase;
-    margin-bottom: 6px;
-  }
-  .mode .btn {
-    align-self: flex-start;
   }
   .join-row {
+    position: relative;
     display: flex;
     gap: 8px;
+    width: min(100%, 440px);
+  }
+  /* bigger controls to fill the box: input and buttons share one height */
+  .mode .btn,
+  .mode .input {
+    height: 48px;
+    font-size: 16px;
+  }
+  .mode .btn {
+    padding: 0 24px;
+  }
+  .mode .input {
+    padding: 0 14px;
+  }
+  .join-error {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
   }
   .section-title {
     font-size: 15px;

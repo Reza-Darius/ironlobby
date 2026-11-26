@@ -23,9 +23,6 @@
       <span class="word">Iron Lobby</span>
     </a>
     <div class="row">
-      {#if route.name !== 'new'}
-        <a href="/new" class="btn sm ghost hide-sm"><Icon name="plus" size={14} />Host</a>
-      {/if}
       {#if me.callsign}
         <button class="callsign" onclick={() => askForCallsign('Register a new name for this browser.')} title="Change name">
           {me.callsign}
@@ -136,10 +133,5 @@
   }
   .repo:hover {
     color: var(--accent-2);
-  }
-  @media (max-width: 480px) {
-    .hide-sm {
-      display: none;
-    }
   }
 </style>

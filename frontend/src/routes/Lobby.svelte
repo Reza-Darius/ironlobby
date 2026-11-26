@@ -64,6 +64,10 @@
     const list = info?.countries ?? []
     return BLOC_ORDER.map((bloc) => ({
       bloc,
+      players: list
+        .filter((c) => nationBloc(c.country_tag) === bloc)
+        .reduce((n, c) => n + (seats.get(c.country_tag)?.length ?? 0), 0),
+      slots: list.filter((c) => nationBloc(c.country_tag) === bloc).reduce((n, c) => n + c.max_slots, 0),
       nations: list
         .filter((c) => nationBloc(c.country_tag) === bloc)
         // majors first, then alphabetical. Only static facts: cards must not
@@ -74,27 +78,6 @@
             nameOf(a.country_tag).localeCompare(nameOf(b.country_tag)),
         ),
     })).filter((g) => g.nations.length)
-  })
-
-  // Players (and slots) per faction for the sidebar. In vanilla lobbies the
-  // Comintern fights alongside the Allies, so it counts toward their side.
-  const factions = $derived.by(() => {
-    const merge = lobby?.gamemode === 'vanilla'
-    const totals = new Map<Bloc, { players: number; slots: number }>()
-    for (const c of info?.countries ?? []) {
-      let bloc = nationBloc(c.country_tag)
-      if (merge && bloc === 'comintern') bloc = 'allies'
-      const t = totals.get(bloc) ?? { players: 0, slots: 0 }
-      t.players += seats.get(c.country_tag)?.length ?? 0
-      t.slots += c.max_slots
-      totals.set(bloc, t)
-    }
-    const hasComintern = (info?.countries ?? []).some((c) => nationBloc(c.country_tag) === 'comintern')
-    return BLOC_ORDER.filter((b) => totals.has(b)).map((bloc) => ({
-      bloc,
-      ...totals.get(bloc)!,
-      merged: merge && bloc === 'allies' && hasComintern,
-    }))
   })
 
   const openNations = $derived((info?.countries ?? []).map((c) => c.country_tag))
@@ -201,6 +184,7 @@
   }
 
   function addNation(tag: string) {
+    addingNation = false // back to the "Add nation" button after each pick
     run(() => api.addCountry(id, tag, 1), '', `${nameOf(tag)} added.`)
   }
 
@@ -343,18 +327,7 @@
   </div>
 {:else}
   <header class="lobby-head">
-    <div class="title-block">
-      <h1>{lobby.lobby_name}</h1>
-      <div class="meta">
-        <span class="row"><Icon name="calendar" size={15} />{formatDate(lobby.starts_at)}</span>
-        <span class="badge" class:live={cd.state === 'soon' || cd.state === 'live'}>
-          {#if cd.state === 'live'}<span class="live-dot"></span>{:else}<Icon name="clock" size={12} />{/if}
-          {cd.text}
-        </span>
-        <span class="badge">{gamemodeLabel(lobby.gamemode)}</span>
-        {#if host}<span class="badge accent"><Icon name="crown" size={12} />You're hosting</span>{/if}
-      </div>
-    </div>
+    <h1>{lobby.lobby_name}</h1>
     <div class="head-actions">
       <button class="btn" onclick={() => copy(lobbyUrl(id), 'Invite link copied')}>
         <Icon name="link" size={15} />Copy invite
@@ -365,8 +338,7 @@
     </div>
   </header>
 
-  <div class="layout">
-    <div class="main">
+  <div class="main">
       {#if groups.length === 0}
         <div class="empty panel">
           <Icon name="flag" size={22} />
@@ -378,6 +350,7 @@
         <section class="bloc">
           <h2 class="bloc-title" style:--bloc={BLOCS[g.bloc].color}>
             <span class="bloc-dot"></span>{BLOCS[g.bloc].label}
+            <span class="bloc-count" title="Players / slots">{g.players}/{g.slots}</span>
           </h2>
           <div class="grid">
             {#each g.nations as c (c.country_tag)}
@@ -413,7 +386,7 @@
           {#if addingNation}
             <div class="add-row">
               <div class="add-picker"><NationPicker exclude={openNations} onpick={addNation} focusOnMount /></div>
-              <button class="btn ghost" onclick={() => (addingNation = false)}>Done</button>
+              <button class="btn ghost" onclick={() => (addingNation = false)}>Cancel</button>
             </div>
             <p class="hint">New nations start with 1 slot. Use the +/− on a card to change it.</p>
           {:else}
@@ -423,9 +396,40 @@
           {/if}
         </section>
       {/if}
-    </div>
+  </div>
 
-    <aside class="side">
+  <!-- everything about the game, below the nations -->
+  <div class="info">
+    <div class="info-col">
+      <section class="panel side-card">
+        <h2 class="side-title"><Icon name="calendar" size={15} />Details</h2>
+        <dl class="details">
+          <div>
+            <dt>Starts</dt>
+            <dd>{formatDate(lobby.starts_at)}</dd>
+          </div>
+          <div>
+            <dt>Countdown</dt>
+            <dd>
+              <span class="badge" class:live={cd.state === 'soon' || cd.state === 'live'}>
+                {#if cd.state === 'live'}<span class="live-dot"></span>{:else}<Icon name="clock" size={12} />{/if}
+                {cd.text}
+              </span>
+            </dd>
+          </div>
+          <div>
+            <dt>Game mode</dt>
+            <dd>{gamemodeLabel(lobby.gamemode)}</dd>
+          </div>
+          {#if host}
+            <div>
+              <dt>Host</dt>
+              <dd><span class="badge accent"><Icon name="crown" size={12} />You're hosting</span></dd>
+            </div>
+          {/if}
+        </dl>
+      </section>
+
       <!-- in-game ID -->
       <section class="panel side-card launch" class:ready={!!gameId}>
         <h2 class="side-title"><Icon name="radio" size={15} />In-game lobby ID</h2>
@@ -462,45 +466,16 @@
           <p class="muted small">The host will post the ID here when the game is up. Check back near the start time.</p>
         {/if}
       </section>
+    </div>
 
-      {#if lobby.description}
+    {#if lobby.description}
+      <div class="info-col">
         <section class="panel side-card">
           <h2 class="side-title">Description</h2>
           <div class="description"><LinkedText text={lobby.description} /></div>
         </section>
-      {/if}
-
-      {#if factions.length}
-        <section class="panel side-card">
-          <h2 class="side-title"><Icon name="flag" size={15} />Factions</h2>
-          <ul class="factions">
-            {#each factions as f (f.bloc)}
-              <li style:--bloc={BLOCS[f.bloc].color}>
-                <span class="bloc-dot"></span>
-                <span class="f-name">{f.merged ? 'Allies / Comintern' : BLOCS[f.bloc].label}</span>
-                <span class="f-count">{f.players} / {f.slots}</span>
-              </li>
-            {/each}
-          </ul>
-        </section>
-      {/if}
-
-      <section class="panel side-card roster-card">
-        <h2 class="side-title"><Icon name="users" size={15} />Roster <span class="count-pill">{players.length}</span></h2>
-        {#if players.length}
-          <ul class="roster">
-            {#each [...players].sort((a, b) => a.player_name.localeCompare(b.player_name)) as p (p.player_name)}
-              <li class:me={p.player_name === me.callsign}>
-                <Flag tag={p.country_tag} size="sm" />
-                <span class="rname">{p.player_name}</span>
-              </li>
-            {/each}
-          </ul>
-        {:else}
-          <p class="muted small">Nobody has signed up yet. Send the invite link around.</p>
-        {/if}
-      </section>
-    </aside>
+      </div>
+    {/if}
   </div>
 {/if}
 
@@ -691,34 +666,37 @@
   .lobby-head {
     display: flex;
     flex-wrap: wrap;
-    align-items: flex-end;
+    align-items: center;
     justify-content: space-between;
     gap: 16px 24px;
     padding-bottom: 22px;
     margin-bottom: 22px;
     border-bottom: 1px solid var(--line);
   }
-  .title-block {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    min-width: 0;
-  }
   h1 {
     font-size: clamp(28px, 5vw, 44px);
     text-transform: uppercase;
     overflow-wrap: anywhere;
   }
-  .meta {
+  .details {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px 10px;
-    font-size: 15.5px;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
   }
-  .meta .row {
-    gap: 6px;
-    margin-right: 6px;
+  .details > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .details dt {
+    color: var(--muted);
+  }
+  .details dd {
+    margin: 0;
+    font-weight: 500;
+    text-align: right;
   }
   .live-dot {
     width: 7px;
@@ -736,47 +714,22 @@
     display: flex;
     gap: 8px;
   }
-  .count-pill {
-    display: inline-grid;
-    place-items: center;
-    min-width: 22px;
-    height: 20px;
-    padding: 0 7px;
-    border-radius: 999px;
-    background: var(--panel-2);
-    border: 1px solid var(--line-2);
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 13.5px;
-    font-weight: 600;
-    letter-spacing: 0;
-    line-height: 1;
-  }
 
-  .layout {
+  /* below the nations: Details + Server ID | Description */
+  .info {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
     align-items: start;
+    margin-top: 32px;
+    padding-top: 28px;
+    border-top: 1px solid var(--line);
   }
-  @media (min-width: 960px) {
-    .layout {
-      grid-template-columns: minmax(0, 1fr) 300px;
-    }
-    .side {
-      position: sticky;
-      top: 78px;
-    }
-  }
-  /* on small screens the game ID matters more than the nation grid */
-  @media (max-width: 959px) {
-    .side {
-      order: -1;
-    }
-    /* nation cards already show who is where */
-    .side .roster-card {
-      display: none;
-    }
+  .info-col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
   }
 
   .main {
@@ -796,6 +749,14 @@
     margin-bottom: 12px;
     color: var(--text);
   }
+  /* same face as the heading, lighter weight so the label leads */
+  .bloc-count {
+    margin-left: 6px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+  }
   .bloc-title .bloc-dot {
     width: 13px;
     height: 13px;
@@ -805,34 +766,6 @@
     height: 10px;
     border-radius: 2px;
     background: var(--bloc);
-  }
-  .factions {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .factions li {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    font-size: 15px;
-  }
-  .factions .bloc-dot {
-    background: var(--bloc);
-    flex-shrink: 0;
-  }
-  .f-name {
-    flex: 1;
-    min-width: 0;
-  }
-  .f-count {
-    font-family: var(--mono);
-    font-weight: 600;
-    font-size: 15px;
-    white-space: nowrap;
   }
   .grid {
     display: grid;
@@ -875,12 +808,6 @@
     margin-top: 8px;
   }
 
-  .side {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    min-width: 0;
-  }
   .side-card {
     display: flex;
     flex-direction: column;
@@ -938,30 +865,6 @@
     overflow-wrap: anywhere;
     font-size: 15px;
     color: var(--text);
-  }
-  .roster {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .roster li {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 15px;
-    min-width: 0;
-  }
-  .roster li.me .rname {
-    color: var(--accent-2);
-    font-weight: 600;
-  }
-  .rname {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .claim-nation {

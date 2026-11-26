@@ -5,6 +5,7 @@
   import Icon from './Icon.svelte'
   import Stepper from './Stepper.svelte'
   import Flag from './Flag.svelte'
+  import NoteBubble from './NoteBubble.svelte'
 
   let {
     tag,
@@ -134,8 +135,8 @@
             {p.player_name}
             {#if p.is_host}<span class="host-mark" title="Host" aria-label="Host"><Icon name="crown" size={13} /></span>{/if}
             {#if p.player_name === myName}<span class="you">you</span>{/if}
+            {#if p.note}<NoteBubble note={p.note} name={p.player_name} />{/if}
           </span>
-          {#if p.note}<span class="note">“{p.note}”</span>{/if}
         </div>
         {#if host}
           <div class="seat-actions">
@@ -447,12 +448,6 @@
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--accent);
-  }
-  .note {
-    font-size: 14px;
-    color: var(--muted);
-    font-style: italic;
-    overflow-wrap: anywhere;
   }
   footer {
     display: flex;

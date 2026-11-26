@@ -252,11 +252,11 @@
     margin: 0;
     width: min(320px, calc(100vw - 16px));
     padding: 14px;
-    background: var(--panel);
+    background-color: var(--panel);
     color: var(--text);
     border: 1px solid var(--line-2);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--frame), var(--shadow-lg);
   }
   .month {
     display: flex;

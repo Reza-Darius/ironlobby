@@ -708,7 +708,7 @@
     padding: 0;
     overflow: hidden;
     /* the faction's colour, just a hint: allies bluish, axis grey, comintern red */
-    background: color-mix(in srgb, var(--bloc) var(--tint), var(--panel));
+    background-color: color-mix(in srgb, var(--bloc) var(--tint), var(--panel));
     border-color: color-mix(in srgb, var(--bloc) min(var(--tint) * 2.4, 30%), var(--line));
   }
   /* drawn inside the row (takes no height) so rows stay exactly 50px per slot */
@@ -719,15 +719,15 @@
   .bloc-geacps {
     --divider: rgb(0 0 0 / 0.38);
   }
-  /* first / last rows follow the list's rounded corners (12px - 1px border),
+  /* first / last rows follow the list's corners (radius - 1px border),
      so a highlighted row's gold edge isn't clipped at the corner */
   .nation-list > div:first-child > :global(.card) {
-    border-top-left-radius: 11px;
-    border-top-right-radius: 11px;
+    border-top-left-radius: calc(var(--radius-lg) - 1px);
+    border-top-right-radius: calc(var(--radius-lg) - 1px);
   }
   .nation-list > div:last-child > :global(.card) {
-    border-bottom-left-radius: 11px;
-    border-bottom-right-radius: 11px;
+    border-bottom-left-radius: calc(var(--radius-lg) - 1px);
+    border-bottom-right-radius: calc(var(--radius-lg) - 1px);
   }
 
   .empty {
@@ -778,7 +778,7 @@
   }
   .launch.ready {
     border-color: rgb(134 180 111 / 0.45);
-    background: #26301f;
+    background-color: #26301f;
   }
   .launch.ready .side-title {
     color: var(--ok);
@@ -791,6 +791,7 @@
     width: 100%;
     padding: 12px 14px;
     background: var(--bg-2);
+    box-shadow: var(--inset);
     border: 1px solid var(--line-2);
     border-radius: var(--radius);
     color: var(--text);

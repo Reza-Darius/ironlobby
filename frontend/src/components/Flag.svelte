@@ -22,7 +22,7 @@
     aspect-ratio: 3 / 2; /* HoI4 flags are ~3:2; 4:3 fallbacks crop slightly */
     height: 18px;
     object-fit: cover;
-    border-radius: 3px;
+    border-radius: 1px;
     /* thin edge so white-heavy flags (JAP, FIN) don't melt into light UI */
     box-shadow:
       0 0 0 1px rgb(255 255 255 / 0.12),
@@ -30,10 +30,10 @@
   }
   .sm {
     height: 14px;
-    border-radius: 2px;
+    border-radius: 1px;
   }
   .lg {
     height: 27px;
-    border-radius: 4px;
+    border-radius: 1px;
   }
 </style>

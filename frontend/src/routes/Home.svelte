@@ -291,7 +291,7 @@
     /* no nation: a faint empty frame keeps names aligned */
     height: 27px;
     border: 1px dashed var(--line-2);
-    border-radius: 4px;
+    border-radius: 1px;
   }
   .recent-nation {
     font-size: 14px;

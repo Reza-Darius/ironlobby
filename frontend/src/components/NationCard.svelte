@@ -211,8 +211,7 @@
     display: grid;
     grid-template-columns: 190px minmax(0, 1fr);
     gap: 0 16px;
-    /* seats sit 5px inside the list on the right, top and bottom: with their
-       6px corners that matches the list's 11px inner corner (12px - 1px border) */
+    /* seats sit 5px inside the list on the right, top and bottom */
     padding: 5px 5px 5px 14px;
     height: 100%;
     /* every nation row sits a little darker than the list panel */
@@ -276,7 +275,7 @@
     gap: 9px;
     height: 40px;
     padding: 0 10px;
-    border-radius: 6px;
+    border-radius: var(--radius);
     font-size: 15px;
   }
   /* tinted like the faction list around it (--bloc/--tint come from Lobby) */
@@ -380,7 +379,7 @@
     height: 26px;
     padding: 0;
     border: 1px solid transparent;
-    border-radius: 5px;
+    border-radius: var(--radius);
     background: transparent;
     color: var(--muted);
     cursor: pointer;

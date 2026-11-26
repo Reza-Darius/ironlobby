@@ -94,7 +94,7 @@
     height: 20px;
     padding: 0;
     border: 0;
-    border-radius: 4px;
+    border-radius: var(--radius);
     background: transparent;
     color: var(--muted);
     cursor: pointer;

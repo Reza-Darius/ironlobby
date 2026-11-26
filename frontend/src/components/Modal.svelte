@@ -51,10 +51,10 @@
      clipped at the dialog's edge */
   dialog {
     padding: 0;
-    background: var(--panel);
+    background-color: var(--panel);
     border: 1px solid var(--line-2);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--frame), var(--shadow-lg);
     color: inherit;
     max-width: min(520px, calc(100vw - 32px));
     width: 100%;

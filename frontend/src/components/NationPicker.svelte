@@ -154,7 +154,7 @@
     align-items: center;
     gap: 10px;
     padding: 7px 8px;
-    border-radius: 5px;
+    border-radius: var(--radius);
     cursor: pointer;
     font-size: 15px;
   }

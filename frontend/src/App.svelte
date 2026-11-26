@@ -63,7 +63,7 @@
     position: sticky;
     top: 0;
     z-index: 10;
-    background: var(--bg-2);
+    background-color: var(--bg-2);
     border-bottom: 1px solid var(--line);
   }
   .inner {
@@ -93,9 +93,10 @@
     max-width: 200px;
     height: 30px;
     padding: 0 12px;
-    border-radius: 999px;
+    border-radius: var(--radius);
     border: 1px solid var(--line-2);
-    background: var(--panel);
+    background-color: var(--panel);
+    box-shadow: var(--bevel);
     color: var(--text);
     font: inherit;
     font-size: 14px;

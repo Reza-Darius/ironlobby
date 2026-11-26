@@ -88,14 +88,18 @@
     const role: Role = host ? 'host' : mine ? 'player' : 'visitor'
     const tag = mine?.country_tag ?? null
     const prev = me.recent.find((r) => r.id === lobby.id)
+    const count = players.length
+    const slots = (info?.countries ?? []).reduce((n, c) => n + c.max_slots, 0)
     if (
       !prev ||
       prev.role !== role ||
       prev.tag !== tag ||
       prev.name !== lobby.lobby_name ||
-      prev.starts_at !== lobby.starts_at
+      prev.starts_at !== lobby.starts_at ||
+      prev.players !== count ||
+      prev.slots !== slots
     ) {
-      rememberLobby({ id: lobby.id, name: lobby.lobby_name, starts_at: lobby.starts_at, role, tag })
+      rememberLobby({ id: lobby.id, name: lobby.lobby_name, starts_at: lobby.starts_at, role, tag, players: count, slots })
     }
   })
 

@@ -131,7 +131,7 @@
       >
         <div class="who">
           <span class="pname">
-            {p.player_name}
+            <span class="pname-text" title={p.player_name}>{p.player_name}</span>
             {#if p.is_host}<span class="host-mark" title="Host" aria-label="Host"><Icon name="crown" size={13} /></span>{/if}
             {#if p.player_name === myName}<span class="you">you</span>{/if}
             {#if p.note}<NoteBubble note={p.note} name={p.player_name} />{/if}
@@ -283,6 +283,7 @@
     font-size: 15px;
   }
   .seat.taken {
+    position: relative;
     background: var(--panel-2);
   }
   .seat.movable {
@@ -294,8 +295,9 @@
   .seat.dragged {
     opacity: 0.4;
   }
+  /* solid (10% gold over the card) so the hover actions can match it */
   .seat.me {
-    background: rgb(214 170 76 / 0.1);
+    background: #383826;
   }
   .seat.empty {
     color: var(--dim);
@@ -347,7 +349,20 @@
   .seat:focus-within .seat-actions {
     opacity: 1;
   }
-  /* no hover on touch screens: always show them */
+  /* with a mouse they take no room until the row is hovered or focused, so
+     names aren't cut short by buttons you can't see (still tabbable) */
+  @media (hover: hover) {
+    .seat-actions {
+      width: 0;
+      overflow: hidden;
+    }
+    .seat:hover .seat-actions,
+    .seat:focus-within .seat-actions {
+      width: auto;
+      overflow: visible;
+    }
+  }
+  /* no hover on touch screens: always show them, in the row */
   @media (hover: none) {
     .seat-actions {
       opacity: 1;
@@ -388,22 +403,35 @@
   .who {
     display: flex;
     flex-direction: column;
+    flex: 1;
     min-width: 0;
   }
+  /* one line: the name truncates, the crown / YOU / note markers never wrap */
   .pname {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 0 6px;
+    gap: 6px;
+    min-width: 0;
     font-size: 17px;
     font-weight: 500;
-    overflow-wrap: anywhere;
+  }
+  .pname-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .pname > :not(.pname-text) {
+    flex-shrink: 0;
   }
   .host-mark {
     display: inline-flex;
     color: var(--accent);
   }
   .you {
+    /* tight box so the capitals sit on the name's centre line */
+    line-height: 1;
+    padding-top: 1px;
     font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;

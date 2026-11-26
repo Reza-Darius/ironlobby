@@ -18,6 +18,9 @@ export interface RecentLobby {
   role: Role
   /** nation you're seated on, if any */
   tag?: string | null
+  /** seated players and total slots, as of the last time we looked */
+  players?: number
+  slots?: number
 }
 
 interface Stored {

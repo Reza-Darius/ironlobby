@@ -74,10 +74,9 @@
   }
 
   // Refresh the list from the server once on load: picks up nation switches,
-  // renames and time changes made elsewhere since the lobby was last opened.
+  // renames, time changes and how full each lobby is now.
   onMount(() => {
     for (const r of me.recent) {
-      if (r.role === 'visitor') continue
       api
         .lobby(r.id)
         .then((info) => {
@@ -87,6 +86,8 @@
             starts_at: info.lobby.starts_at,
             tag: seat?.country_tag ?? null,
             role: isHost(info.lobby) ? 'host' : seat ? 'player' : 'visitor',
+            players: info.players?.length ?? 0,
+            slots: (info.countries ?? []).reduce((n, c) => n + c.max_slots, 0),
           })
         })
         .catch(() => {})
@@ -138,6 +139,10 @@
               {formatDate(r.starts_at)}
               <span class="dim">·</span>
               <span class:soon={cd.state === 'soon' || cd.state === 'live'}>{cd.text}</span>
+              {#if r.slots}
+                <span class="dim">·</span>
+                <span class="recent-count" title="Players / slots"><Icon name="users" size={13} />{r.players ?? 0}/{r.slots}</span>
+              {/if}
             </span>
           </a>
           <span class="badge" class:accent={r.role === 'host'} class:ok={r.role === 'player'}>{ROLE_LABEL[r.role]}</span>
@@ -305,6 +310,12 @@
     gap: 6px;
     font-size: 14px;
     flex-wrap: wrap;
+  }
+  .recent-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-variant-numeric: tabular-nums;
   }
   .soon {
     color: var(--live);

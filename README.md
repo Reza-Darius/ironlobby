@@ -1,3 +1,7 @@
+<div align="center">
+<img src="preview.png" width="800"/>
+</div>
+
 # Iron Lobby
 
 A small application for Heart of Iron 4 to help people organize multiplayer lobbies!

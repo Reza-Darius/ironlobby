@@ -600,7 +600,7 @@ func (app *Application) movePlayer(w http.ResponseWriter, r *http.Request) {
 			}
 		default:
 			{
-				slog.Error("error when kicking player", "err", err)
+				slog.Error("error when moving player", "err", err)
 				http.Error(w, "internal server error", http.StatusInternalServerError)
 			}
 		}

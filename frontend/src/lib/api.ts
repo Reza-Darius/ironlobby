@@ -14,7 +14,7 @@ export class ApiError extends Error {
 }
 
 function fallbackMessage(status: number): string {
-  if (status === 401) return 'You need a callsign to do that.'
+  if (status === 401) return 'You need a name to do that.'
   if (status === 404) return 'Not found.'
   if (status === 409) return 'That already exists.'
   if (status >= 500) return 'The server ran into a problem. Try again in a moment.'

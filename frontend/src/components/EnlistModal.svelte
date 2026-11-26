@@ -37,13 +37,13 @@
 
 <Modal
   bind:open={prompt.open}
-  title="Pick your callsign"
+  title="Pick your name"
   subtitle={prompt.reason || 'This is how other players will see you in lobbies.'}
   onclose={() => settlePrompt(false)}
 >
   <form onsubmit={submit} class="stack">
     <label class="field">
-      <span class="label">Callsign</span>
+      <span class="label">Name</span>
       <!-- svelte-ignore a11y_autofocus -->
       <input
         class="input"
@@ -54,13 +54,12 @@
         autofocus
         aria-invalid={!!error}
       />
-      {#if error}<span class="error">{error}</span>
-      {:else}<span class="hint">Use the same name you go by in Steam or Discord so the host recognises you.</span>{/if}
+      {#if error}<span class="error">{error}</span>{/if}
     </label>
     <div class="row end">
       <button type="button" class="btn ghost" onclick={() => (prompt.open = false)}>Cancel</button>
       <button class="btn primary" disabled={busy}>
-        {busy ? 'Enlisting…' : 'Enlist'}
+        {busy ? 'Confirming…' : 'Confirm'}
       </button>
     </div>
   </form>

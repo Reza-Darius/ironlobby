@@ -5,6 +5,14 @@
 // 1936 is drawn below as simplified SVG. Germany follows HoI4's own substitute
 // design (Kriegsmarine layout with Iron Crosses instead of the swastika).
 
+// Temporary in-game-style flags cut from assets/country_flags.png (120×80,
+// one per tag, file name = tag). They win over everything below; swap the
+// files for the official assets when we have them.
+const ingame = import.meta.glob('/assets/flags/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<
+  string,
+  string
+>
+
 const modern = import.meta.glob(
   '/node_modules/flag-icons/flags/4x3/{jp,gb,fr,pl,au,nz,nl,be,lu,tw,no,dk,se,fi,pt,tr,cz,mx,br,ar,cl,th,ph,ro,bg,cn,mn}.svg',
   { eager: true, query: '?url', import: 'default' },
@@ -165,6 +173,8 @@ const cache: Record<string, string | null> = {}
 /** URL of the flag image for a tag, or null if we have none. */
 export function flagUrl(tag: string): string | null {
   if (tag in cache) return cache[tag]
+  const own = ingame[`/assets/flags/${tag}.webp`]
+  if (own) return (cache[tag] = own)
   const iso = SAME_SINCE_1936[tag]
   const url = HISTORIC[tag]
     ? dataUrl(HISTORIC[tag])

@@ -27,8 +27,8 @@
         <a href="/new" class="btn sm ghost hide-sm"><Icon name="plus" size={14} />Host</a>
       {/if}
       {#if me.callsign}
-        <button class="callsign" onclick={() => askForCallsign('Register a new callsign for this browser.')} title="Change callsign">
-          <span class="dot"></span>{me.callsign}
+        <button class="callsign" onclick={() => askForCallsign('Register a new name for this browser.')} title="Change name">
+          {me.callsign}
         </button>
       {:else}
         <button class="btn sm" onclick={() => askForCallsign()}>Enlist</button>
@@ -110,14 +110,6 @@
   }
   .callsign:hover {
     border-color: var(--accent);
-  }
-  .dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--ok);
-    box-shadow: 0 0 0 3px rgb(134 180 111 / 0.2);
-    flex-shrink: 0;
   }
   main {
     padding-top: 28px;

@@ -140,7 +140,7 @@
   function claimSlot(tag: string) {
     run(
       () => api.claim(id, tag, mine?.note ?? ''),
-      'Pick a callsign so the host knows who claimed this nation.',
+      'Pick a name so the host knows who claimed this nation.',
       `You're now playing ${nameOf(tag)}.`,
     )
   }
@@ -413,13 +413,13 @@
         <section class="add-nation panel">
           {#if addingNation}
             <div class="add-row">
-              <div class="add-picker"><NationPicker exclude={openNations} onpick={addNation} /></div>
+              <div class="add-picker"><NationPicker exclude={openNations} onpick={addNation} focusOnMount /></div>
               <button class="btn ghost" onclick={() => (addingNation = false)}>Done</button>
             </div>
             <p class="hint">New nations start with 1 slot. Use the +/− on a card to change it.</p>
           {:else}
             <button class="btn block ghost add-btn" onclick={() => (addingNation = true)}>
-              <Icon name="plus" size={15} />Open another nation
+              <Icon name="plus" size={15} />Add nation
             </button>
           {/if}
         </section>
@@ -450,10 +450,14 @@
           <button class="game-id mono" onclick={() => copy(gameId, 'Game ID copied')} title="Copy game ID">
             {gameId}<Icon name="copy" size={16} />
           </button>
-          <p class="hint">Use it in HoI4 under Multiplayer → join by ID.</p>
+          <!-- button label from the game's own text (multiplayer_l_english: CONNECT_TO_IP) -->
+          <p class="hint">In HoI4, go to Multiplayer → <strong>Connect to Server ID</strong> and paste it there.</p>
           {#if host}<button class="btn ghost sm" onclick={startGameIdEdit}><Icon name="pencil" size={13} />Change</button>{/if}
         {:else if host}
-          <p class="muted small">Host the game in HoI4, then post its ID here so players can connect.</p>
+          <p class="muted small">
+            Host the game in HoI4, then post its <strong>Server ID</strong> here so players can connect. Right-click
+            the Server ID in the game lobby to copy it.
+          </p>
           <button class="btn primary sm" onclick={startGameIdEdit}>Post game ID</button>
         {:else}
           <p class="muted small">The host will post the ID here when the game is up. Check back near the start time.</p>
@@ -622,6 +626,11 @@
 </Modal>
 
 <style>
+  /* the game's own UI labels stand out in the launch hints */
+  .launch strong {
+    color: var(--text);
+    font-weight: 600;
+  }
   .move-list {
     list-style: none;
     margin: 0;

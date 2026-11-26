@@ -65,7 +65,7 @@
             },
             countries: nations.map((n) => ({ country_tag: n.tag, max_slots: n.slots })),
           }),
-        'Hosts need a callsign so players know who is running the game.',
+        'Hosts need a name so players know who is running the game.',
       )
       if (!res) return
       markHosted(res.lobby_id)
@@ -95,7 +95,7 @@
 
 <form class="layout" onsubmit={submit} novalidate>
   <section class="panel card">
-    <h2 class="card-title"><span class="num">1</span>Briefing</h2>
+    <h2 class="card-title"><span class="num">1</span>Settings</h2>
 
     <label class="field">
       <span class="label">Lobby name</span>
@@ -143,7 +143,7 @@
     </label>
   </section>
 
-  <section class="panel card">
+  <section class="panel card nations-card">
     <h2 class="card-title"><span class="num">2</span>Nations</h2>
     <p class="muted small">Players can only claim the nations you open. Use slots for co-op (e.g. 2 players on SOV).</p>
 
@@ -189,9 +189,8 @@
   </section>
 
   <div class="submit-bar">
-    <button class="btn primary lg" disabled={busy}>
+    <button class="btn primary" disabled={busy}>
       {busy ? 'Creating…' : 'Create lobby'}
-      {#if !busy}<Icon name="arrow" size={16} />{/if}
     </button>
   </div>
 </form>
@@ -218,9 +217,20 @@
   @media (min-width: 900px) {
     .layout {
       grid-template-columns: 1fr 1fr;
+      /* row 1 fits Settings; the flexible row 2 absorbs the Nations overflow */
+      grid-template-rows: auto 1fr;
+    }
+    /* the button sits right under Settings; Nations takes the whole right
+       column, so adding nations never pushes the button down */
+    .nations-card {
+      grid-column: 2;
+      grid-row: 1 / span 2;
     }
     .submit-bar {
-      grid-column: 1 / -1;
+      grid-column: 1;
+      grid-row: 2;
+      position: static;
+      padding-top: 0;
     }
   }
   .card {
@@ -373,7 +383,7 @@
     position: sticky;
     bottom: 0;
     display: flex;
-    justify-content: flex-end;
+    justify-content: flex-start;
     padding: 14px 0;
   }
   @media (max-width: 600px) {

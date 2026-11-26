@@ -122,7 +122,7 @@ export async function authed<T>(action: () => Promise<T>, reason: string): Promi
     if (!isAuthFailure(e)) throw e
     me.callsign = null
     save()
-    if (!(await askForCallsign('This browser lost its session. Pick a callsign to continue.'))) return undefined
+    if (!(await askForCallsign('This browser lost its session. Pick a name to continue.'))) return undefined
     return await action()
   }
 }

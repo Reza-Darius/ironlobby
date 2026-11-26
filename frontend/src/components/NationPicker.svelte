@@ -8,7 +8,15 @@
     exclude = [],
     onpick,
     placeholder = 'Search nations: Germany, Japan, Soviet…',
-  }: { exclude?: string[]; onpick: (tag: string) => void; placeholder?: string } = $props()
+    focusOnMount = false,
+  }: { exclude?: string[]; onpick: (tag: string) => void; placeholder?: string; focusOnMount?: boolean } = $props()
+
+  let inputEl = $state<HTMLInputElement>()
+
+  // shown in response to a click (e.g. "Add nation"): let the user type right away
+  $effect(() => {
+    if (focusOnMount) inputEl?.focus()
+  })
 
   let query = $state('')
   let open = $state(false)
@@ -72,6 +80,7 @@
       aria-controls="nation-options"
       aria-autocomplete="list"
       bind:value={query}
+      bind:this={inputEl}
       {placeholder}
       onfocus={() => (open = true)}
       onclick={() => (open = true)}

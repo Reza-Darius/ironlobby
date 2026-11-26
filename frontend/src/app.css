@@ -11,8 +11,8 @@
   --line-2: #525c49;
   --line-hover: #66715a;
   --text: #ebe6d6;
-  --muted: #a2a794;
-  --dim: #707665;
+  --muted: #c0c3b3; /* 8:1 on --panel */
+  --dim: #9aa08c; /* 5.4:1 on --panel, 4.75:1 on --panel-2: still readable */
   --accent: #d6aa4c;
   --accent-2: #e8c06a;
   --accent-ink: #1b1608;

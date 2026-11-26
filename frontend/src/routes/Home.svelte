@@ -103,7 +103,7 @@
       <h2>Host a game</h2>
       <p class="muted">Pick the nations, the slots per nation, and when it starts. You get a link to send to everyone.</p>
     </div>
-    <span class="btn primary">Create lobby <Icon name="arrow" size={15} /></span>
+    <span class="btn primary">Create lobby</span>
   </a>
 
   <form class="mode panel" onsubmit={join}>
@@ -262,7 +262,7 @@
     border-color: rgb(214 170 76 / 0.5);
   }
   .recent li.past {
-    opacity: 0.6;
+    opacity: 0.75;
   }
   .recent-link {
     flex: 1;

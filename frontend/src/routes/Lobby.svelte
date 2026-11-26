@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { flip } from 'svelte/animate'
   import Icon from '../components/Icon.svelte'
   import Modal from '../components/Modal.svelte'
   import NationCard from '../components/NationCard.svelte'
@@ -382,7 +381,7 @@
           </h2>
           <div class="grid">
             {#each g.nations as c (c.country_tag)}
-              <div animate:flip={{ duration: 200 }}>
+              <div>
                 <NationCard
                   tag={c.country_tag}
                   slots={c.max_slots}

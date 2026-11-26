@@ -187,15 +187,13 @@
     {/each}
   </ul>
 
-  {#if isMine || full || host}
+  {#if isMine || host}
   <footer>
     {#if isMine}
       <button class="btn sm" onclick={onnote} disabled={busy}>
         <Icon name="note" size={13} />{occupants.find((p) => p.player_name === myName)?.note ? 'Edit note' : 'Add note'}
       </button>
       <button class="btn sm danger" onclick={onleave} disabled={busy}><Icon name="leave" size={13} />Leave</button>
-    {:else if full}
-      <span class="full-label dim">Full</span>
     {/if}
 
     {#if host}
@@ -336,12 +334,16 @@
       opacity 0.12s,
       transform 0.12s;
   }
+  /* plain highlight: the dashed outline fades out, the slot fills softly */
   button.claimable:hover:not(:disabled),
   button.claimable:focus-visible {
-    border-style: solid;
-    border-color: var(--accent);
-    background: rgb(214 170 76 / 0.08);
+    border-color: transparent;
+    background: rgb(214 170 76 / 0.12);
     color: var(--text);
+  }
+  button.claimable:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
   }
   button.claimable:hover:not(:disabled) .pip {
     border-color: var(--accent);
@@ -461,11 +463,5 @@
   }
   .spacer {
     flex: 1;
-  }
-  .full-label {
-    font-size: 14px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
   }
 </style>

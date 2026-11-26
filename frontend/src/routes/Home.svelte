@@ -121,7 +121,7 @@
         aria-label="Invite link or lobby number"
         aria-invalid={!!error}
       />
-      <button class="btn">Open</button>
+      <button class="btn primary">Join</button>
     </div>
     {#if error}<span class="error">{error}</span>{/if}
   </form>

@@ -20,7 +20,7 @@
   --ok: #86b46f;
   --live: #e06b4f;
 
-  --display: 'Oswald', 'Arial Narrow', sans-serif;
+  --display: 'Jost', 'Futura', 'Century Gothic', sans-serif; /* Futura-style, 1927 */
   /* wordmark only: heavy slab, a free stand-in for HoI4's Ironmonger logo font */
   --logo: 'Alfa Slab One', 'Rockwell', Georgia, serif;
   --sans: 'IBM Plex Sans', system-ui, sans-serif;

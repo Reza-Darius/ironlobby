@@ -129,7 +129,6 @@
         ondragend={() => ondragdone?.()}
         title={host ? 'Drag onto another nation to move this player' : undefined}
       >
-        <span class="pip"></span>
         <div class="who">
           <span class="pname">
             {p.player_name}
@@ -171,7 +170,7 @@
       <li>
         {#if isMine}
           <!-- you already hold this nation; the spare co-op slot is for someone else -->
-          <span class="seat empty"><span class="pip"></span><span>Open slot</span></span>
+          <span class="seat empty"><span>Open slot</span></span>
         {:else}
           <button
             class="seat empty claimable"
@@ -179,9 +178,7 @@
             disabled={busy}
             aria-label="{myTag ? 'Switch to' : 'Claim'} {nameOf(tag)}"
           >
-            <span class="pip"></span>
             <span class="slot-label">Open slot</span>
-            <span class="cta"><Icon name="back" size={13} />{myTag ? 'Switch here' : 'Claim'}</span>
           </button>
         {/if}
       </li>
@@ -278,9 +275,10 @@
   }
   .seat {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 9px;
-    padding: 6px 8px;
+    min-height: 38px;
+    padding: 6px 10px;
     border-radius: 6px;
     font-size: 15px;
   }
@@ -303,10 +301,14 @@
     color: var(--dim);
     border: 1px dashed var(--line);
   }
-  button.claimable {
+  /* free seats you can take: gold, with Claim always shown, so they stand
+     out when scanning a busy lobby (beats the grey .seat.empty look) */
+  button.seat.claimable {
     width: 100%;
     align-items: center;
-    background: transparent;
+    color: var(--accent);
+    border-color: rgb(214 170 76 / 0.5);
+    background: rgb(214 170 76 / 0.04);
     font: inherit;
     font-size: 15px;
     text-align: left;
@@ -316,65 +318,22 @@
       background 0.12s,
       color 0.12s;
   }
-  button.claimable .pip {
-    margin-top: 0;
-  }
   .slot-label {
     flex: 1;
-  }
-  .cta {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 13.5px;
-    font-weight: 600;
-    color: var(--accent);
-    opacity: 0;
-    transform: translateX(-4px);
-    transition:
-      opacity 0.12s,
-      transform 0.12s;
   }
   /* plain highlight: the dashed outline fades out, the slot fills softly */
   button.claimable:hover:not(:disabled),
   button.claimable:focus-visible {
     border-color: transparent;
-    background: rgb(214 170 76 / 0.12);
+    background: rgb(214 170 76 / 0.16);
     color: var(--text);
   }
   button.claimable:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 1px;
   }
-  button.claimable:hover:not(:disabled) .pip {
-    border-color: var(--accent);
-  }
-  button.claimable:hover:not(:disabled) .cta,
-  button.claimable:focus-visible .cta {
-    opacity: 1;
-    transform: none;
-  }
   button.claimable:disabled {
     cursor: progress;
-  }
-  /* touch screens have no hover: always show the hint */
-  @media (hover: none) {
-    .cta {
-      opacity: 1;
-      transform: none;
-    }
-  }
-  .pip {
-    width: 8px;
-    height: 8px;
-    margin-top: 6px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    background: var(--nation);
-  }
-  .empty .pip {
-    background: transparent;
-    border: 1px solid var(--line-2);
   }
   .seat-actions {
     display: flex;
@@ -432,17 +391,19 @@
     min-width: 0;
   }
   .pname {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0 6px;
+    font-size: 17px;
     font-weight: 500;
     overflow-wrap: anywhere;
   }
   .host-mark {
     display: inline-flex;
-    vertical-align: -2px;
-    margin-left: 4px;
     color: var(--accent);
   }
   .you {
-    margin-left: 4px;
     font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;

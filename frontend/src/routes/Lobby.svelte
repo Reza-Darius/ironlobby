@@ -482,14 +482,6 @@
               </li>
             {/each}
           </ul>
-          {#if players.length}
-            <!-- quick read on team balance -->
-            <div class="balance" aria-hidden="true">
-              {#each factions as f (f.bloc)}
-                {#if f.players}<span style:--bloc={BLOCS[f.bloc].color} style:flex-grow={f.players}></span>{/if}
-              {/each}
-            </div>
-          {/if}
         </section>
       {/if}
 
@@ -841,18 +833,6 @@
     font-weight: 600;
     font-size: 15px;
     white-space: nowrap;
-  }
-  .balance {
-    display: flex;
-    height: 6px;
-    border-radius: 3px;
-    overflow: hidden;
-    background: var(--bg-2);
-    gap: 2px;
-  }
-  .balance span {
-    background: var(--bloc);
-    transition: flex-grow 0.3s ease;
   }
   .grid {
     display: grid;

@@ -92,9 +92,7 @@
     place-items: center;
     width: 20px;
     height: 20px;
-    margin-left: 3px;
     padding: 0;
-    vertical-align: -4px;
     border: 0;
     border-radius: 4px;
     background: transparent;
